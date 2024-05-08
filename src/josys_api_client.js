@@ -195,7 +195,7 @@ class JosysApi {
     if (!params.email && !params.user_id) {
       throw new Error('Error: "email" or "user_id" must be provided');
     }
-    console.log("CREATING " + params.email);
+    console.log("CREATING " + params.last_name);
     return this._apiRequest('/v1/user_profiles', 'post', params).content.data;
   }
 

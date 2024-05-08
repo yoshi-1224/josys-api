@@ -8,24 +8,7 @@ function main() {
   try {
     getJosysMembers();
     getFreeeMembers();
-    const [employeesToAdd, employeesToUpdate] = ComputeDiffs.computeDiff();
-    const [apiUserKey, apiUserSecret] = getJosysCredentials();
-    const josysApp = new JosysApi(apiUserKey, apiUserSecret);
-    let lastRange, results;
-    if (employeesToAdd.length > 0) {
-      Utils.clearSheet(newEmployeeSheetName);
-      lastRange = writeEmployeeDiffsToSheet(employeesToAdd, newEmployeeSheetName);
-      results = uploadNewMembers(josysApp, employeesToAdd);
-      lastRange.setValues(results);
-    }
-
-    if (employeesToUpdate.length > 0) {
-      Utils.clearSheet(updatedEmployeeSheetName);
-      lastRange = writeEmployeeDiffsToSheet(employeesToUpdate, updatedEmployeeSheetName);
-      results = updateMembers(josysApp, employeesToUpdate);
-      lastRange.setValues(results);
-    }
-    errorOutputCell.setValue("メンバー情報の連携に成功しました: 同期日時 " + new Date().toString());
+    syncMembersToJosys();
   } catch (error) {
     console.error(error);
     errorOutputCell.setValue(error  + ": 同期日時 " + new Date().toString());
@@ -48,6 +31,35 @@ function getFreeeMembers(target_sheet="") {
   const [freeeClientId, freeeClientSecret] = getFreeeCredentials();
   const freeeApp = new FreeeApi(freeeClientId, freeeClientSecret);
   writeFreeeMembersToSheet(target_sheet, 1, getFreeCompanyId(), freeeApp);
+}
+
+function syncMembersToJosys(freee_sheet="", josys_sheet="") {
+  if (freee_sheet === "") {
+    freee_sheet = freeeTargetSheetName;
+  }
+
+  if (josys_sheet === "") {
+    josys_sheet = josysTargetSheetName;
+  }
+
+  const [employeesToAdd, employeesToUpdate] = ComputeDiffs.computeDiff(freee_sheet, josys_sheet);
+  const [apiUserKey, apiUserSecret] = getJosysCredentials();
+  const josysApp = new JosysApi(apiUserKey, apiUserSecret);
+  let lastRange, results;
+  if (employeesToAdd.length > 0) {
+    Utils.clearSheet(newEmployeeSheetName);
+    lastRange = writeEmployeeDiffsToSheet(employeesToAdd, newEmployeeSheetName);
+    results = uploadNewMembers(josysApp, employeesToAdd);
+    lastRange.setValues(results);
+  }
+
+  if (employeesToUpdate.length > 0) {
+    Utils.clearSheet(updatedEmployeeSheetName);
+    lastRange = writeEmployeeDiffsToSheet(employeesToUpdate, updatedEmployeeSheetName);
+    results = updateMembers(josysApp, employeesToUpdate);
+    lastRange.setValues(results);
+  }
+  errorOutputCell.setValue("メンバー情報の連携に成功しました: 同期日時 " + new Date().toString());
 }
 
 function uploadNewMembers(app, employeesToAdd) {

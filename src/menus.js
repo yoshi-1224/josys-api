@@ -9,6 +9,7 @@ function onOpen(){
       .addItem('ジョーシスメンバー取得', 'getJosysMembers')
       .addItem('Freee従業員取得', 'getFreeeMembers')
       .addItem('メンバー連携', 'main')
+      .addItem('メンバー連携（シート更新なし）', 'syncMembersToJosys')
       .addToUi();
 }
 
