@@ -6,9 +6,12 @@ class JosysApi {
     this.token = null;
   }
 
-  // Private method to handle token generation and refresh
-  _getToken() {
-    if (this.token) return this.token;
+  _getToken(forceRefresh=false) {
+    if (!forceRefresh) {
+      if (this.token) {
+        return this.token;  
+      }
+    }
     const url = `${this.baseUrl}/v1/oauth/tokens`;
     const payload = {
       'grant_type': 'client_credentials',
@@ -29,12 +32,19 @@ class JosysApi {
     }
   }
 
-  /*
-    if 200/201, returns { content, headers}
-    if 204 or 404, returns null
-    else raises Error
+  /**
+   * Makes an API request to the specified endpoint using the provided HTTP method and data.
+   * This method automatically handles authorization and content type headers.
+   * It also handles token refresh if the initial request returns a 401 Unauthorized response.
+   * 
+   * @param {string} endpoint - The API endpoint to which the request is made.
+   * @param {string} [method='get'] - The HTTP method to use for the request. Defaults to 'get'.
+   * @param {Object} [postData={}] - The data to be sent with the request. Relevant for methods like 'post'.
+   * @returns {Object|null} - Returns an object containing 'content' and 'headers' if successful,
+   *                          returns null if the response code is 204 or 404.
+   * @throws {Error} - Throws an error if the response code is not 200, 201, 204, or 404.
    */
-  _apiRequest(endpoint, method = 'get', params = {}) {
+  _makeApiRequest(endpoint, method = 'get', postData = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Authorization': `Bearer ${this._getToken()}`,
@@ -46,46 +56,60 @@ class JosysApi {
       'muteHttpExceptions': true // to handle HTTP errors without throwing exceptions
     };
 
-    if ((method !== 'get' || method !== 'delete') && Object.keys(params).length) {
-      options.payload = JSON.stringify(params);
+    if ((method !== 'get' || method !== 'delete') && Object.keys(postData).length) {
+      options.payload = JSON.stringify(postData);
     }
 
-    // call, and if 401, call again
-    // if other than 401, raise error
-    const response = UrlFetchApp.fetch(url, options);
-    if (response.getResponseCode() === 401) {
-      console.log("Refreshing token");
-      this.token = null; // Reset token
-      headers['Authorization'] = `Bearer ${this._getToken()}`;
-      options.headers = headers;
-      response.UrlFetchApp.fetch(url, options);
+    let response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() === 401) { // token error
+      console.log("Refreshing token and tying again");
+      headers['Authorization'] = `Bearer ${this._getToken(forceRefresh=true)}`;
+      response = UrlFetchApp.fetch(url, options);
+    }
+    switch (response.getResponseCode()) {
+      case 200: // OK
+      case 201: // POST successful
+        return {
+          content: JSON.parse(response.getContentText()),
+          headers: response.getAllHeaders()
+        };
+      case 204: // DELETE successful
+        console.log("DELETE successful");
+        return {
+          content: null,
+          headers: response.getAllHeaders()
+        };
+      case 404:
+        console.log("404 Not Found");
+        return;
+      default:
+        throw new Error(`${response.getResponseCode()} : ${response.getContentText()}`);
+      }
     }
 
-    if (response.getResponseCode() === 200 || response.getResponseCode() === 201) {
-      // 201 = Data creation is successful
-      return {
-        content: JSON.parse(response.getContentText()),
-        headers: response.getAllHeaders()
-      };
-    } else if (response.getResponseCode() === 204) {
-      // 204 = Data deletion is successful
-      console.log("DELETE successful, nothing to return");
-      return;
-    } else if (response.getResponseCode() === 404) {
-      console.log("404 Not Found");
-      return;
-    } else {
-      throw new Error(`${response.getResponseCode()} : ${response.getContentText()}`);
-    }
-  }
-
-  _paginateThrough(endpoint, per_page) {
+  /**
+   * Paginates through API responses for a given endpoint.
+   * This function handles pagination logic for API requests that return paginated data.
+   * It continues to make requests until all pages have been fetched or until an error occurs.
+   *
+   * @param {string} endpoint - The API endpoint to make requests to.
+   * @param {number} perPage - The number of items per page.
+   * @param {string} [method='get'] - The HTTP method to use for the requests.
+   * @param {Object} [postData={}] - The data to be sent in the case of a POST request.
+   * @returns {Array} An array containing all items from all pages of the API response.
+   */
+  _paginateThrough(endpoint, perPage, method='get', postData={}) {
     let page = 1;
     let totalPages = 1;
     let result = [];
+    let response;
 
     while (page <= totalPages) {
-      const response = this._apiRequest(`${endpoint}?per_page=${per_page}&page=${page}`);
+      if (method === 'get') {
+        response = this._makeApiRequest(`${endpoint}?per_page=${perPage}&page=${page}`);
+      } else if (method === 'post') {
+        response = this._makeApiRequest(`${endpoint}?per_page=${perPage}&page=${page}`, 'post', postData);
+      }
 
       if (response && response.content) {
         result = result.concat(response.content.data || []);
@@ -97,80 +121,50 @@ class JosysApi {
         break; // Exit loop if no response or an error occurred
       }
     }
-
     return result;
-  }
-
-  _paginatePostThrough(endpoint, postData, per_page) {
-    let page = 1;
-    let totalPages = 1;
-    let result = [];
-
-    while (page <= totalPages) {
-      const response = this._apiRequest(`${endpoint}?per_page=${per_page}&page=${page}`, 'post', postData);
-
-      if (response && response.content) {
-        result = result.concat(response.content.data || []);
-        totalPages = parseInt(response.headers['x-total-pages'] || '1');
-        const totalRecords = parseInt(response.headers['x-total'] || '0');
-        console.log(`Fetching page: ${page} of ${totalPages}, Total Records: ${totalRecords}`);
-        page++;
-      } else {
-        break; // Exit loop if no response or an error occurred
-      }
-    }
-
-    return result;
-  }
-
-  _convertUserProfileEnumsToJapanese(profile) {
-    profile["status"] = statusMappingEn2JP[profile["status"]];
-    if (profile["user_category"]) {
-      profile["user_category"] = statusMappingEn2JP[profile["user_category"]];
-    }
   }
 
   // Departments Endpoints
-  getAllDepartments(per_page = 50) {
-    return this._paginateThrough('/v1/departments', per_page);
+  getAllDepartments(perPage=50) {
+    return this._paginateThrough('/v1/departments', perPage);
   }
 
   getDepartment(uuid) {
-    return this._apiRequest(`/v1/departments/${uuid}`).content.data;
+    return this._makeApiRequest(`/v1/departments/${uuid}`).content.data;
   }
 
   createDepartment(params) {
     if (!params.name) {
       throw new Error('Error: "name" field is required for creating a department.');
     }
-    return this._apiRequest('/v1/departments', 'post', params).content.data;
+    return this._makeApiRequest('/v1/departments', 'post', params).content.data;
   }
 
-  searchDepartments(search_params, per_page = 50) {
-    return this._paginatePostThrough('/v1/departments/search', search_params, per_page);
+  searchDepartments(searchParams, perPage=50) {
+    return this._paginateThrough('/v1/departments/search', perPage, 'post', searchParams);
   }
 
-  getAllUserProfiles(per_page = 100, return_enums_in_japanese=true, get_department_names=true) {
-    const results = this._paginateThrough('/v1/user_profiles', per_page);
+  getAllUserProfiles(perPage = 100, returnEnumsInJapanese=true, getDepartments=true) {
+    const results = this._paginateThrough('/v1/user_profiles', perPage);
 
-    if (return_enums_in_japanese) {
+    if (returnEnumsInJapanese) {
       for (const profile of results) {
         this._convertUserProfileEnumsToJapanese(profile);
       }
     };
 
-    if (get_department_names) {
+    if (getDepartments) {
       const departments = this.getAllDepartments();
       this._appendDepartments(results, departments);
     }
     return results;
   }
 
-  getUserProfile(uuid, return_in_japanese=true) {
-    const result = this._apiRequest(`/v1/user_profiles/${uuid}`);
+  getUserProfile(uuid, returnEnumsInJapanese=true) {
+    const result = this._makeApiRequest(`/v1/user_profiles/${uuid}`);
     if (result) {
       let userProfile = result.content.data;
-      if (return_in_japanese) {
+      if (returnEnumsInJapanese) {
         return this._convertUserProfileEnumsToJapanese(userProfile);
       }
     } else {
@@ -180,12 +174,11 @@ class JosysApi {
 
   updateUserProfile(uuid, params) {
     console.log("UPDATING " + uuid);
-    console.log(params);
-    return this._apiRequest(`/v1/user_profiles/${uuid}`, "patch", params);
+    return this._makeApiRequest(`/v1/user_profiles/${uuid}`, "patch", params);
   }
 
   deleteUserProfile(uuid) {
-    return this._apiRequest(`/v1/user_profiles/${uuid}`, "delete");
+    return this._makeApiRequest(`/v1/user_profiles/${uuid}`, "delete");
   }
 
   createUserProfile(params) {
@@ -196,22 +189,22 @@ class JosysApi {
       throw new Error('Error: "email" or "user_id" must be provided');
     }
     console.log("CREATING " + params.last_name);
-    return this._apiRequest('/v1/user_profiles', 'post', params).content.data;
+    return this._makeApiRequest('/v1/user_profiles', 'post', params).content.data;
   }
 
-  searchUserProfiles(search_params, per_page = 100, return_in_japanese=true, get_department_names=true) {
-    let results = this._paginatePostThrough('/v1/user_profiles/search', search_params, per_page);
+  searchUserProfiles(search_params, perPage=100, returnEnumsInJapanese=true, getDepartmentNames=true) {
+    let results = this._paginateThrough('/v1/user_profiles/search', perPage, 'post', search_params);
     if (!results) {
       return [];
     }
     
-    if (return_in_japanese) {
+    if (returnEnumsInJapanese) {
       for (const profile of results) {
         this._convertUserProfileEnumsToJapanese(profile);
       }
     }
 
-    if (get_department_names) {
+    if (getDepartmentNames) {
       const departments = this.getAllDepartments();
       this._appendDepartments(results, departments);
     }
@@ -253,9 +246,119 @@ class JosysApi {
     });
     return fullPathDictionary;
   }
+
+  _convertUserProfileEnumsToJapanese(profile) {
+    profile["status"] = statusMappingEn2Jp[profile["status"]];
+    if (profile["user_category"]) {
+      profile["user_category"] = statusMappingEn2Jp[profile["user_category"]];
+    }
+  }
+
+  searchDevices(searchParams, perPage=100, returnCustomFields=true, returnMdmFields=true, returnEnumsInJapanese=true) {
+    let results = this._paginateThrough('/v1/devices/search', perPage, 'post', searchParams);
+    if (!results) {
+      return [];
+    }
+
+    for (const device of results) {
+      this._flattenAssignmentFields(device);
+    }
+
+    for (const device of results) {
+      if (device.source.includes("intune")) {
+        device.source = "intune";
+      } else {
+        device.source = "josys";
+      }
+    }
+
+    if (returnEnumsInJapanese) {
+      for (const device of results) {
+        this._convertDeviceEnumsToJapanese(device);
+      }
+    }
+
+    if (returnCustomFields) {
+      for (const device of results) {
+        this._flattenCustomFields(device);
+      }
+    } else {
+      for (const device of results) {
+        delete device["custom_fields"];
+      }
+    }
+
+    if (returnMdmFields) {
+      for (const device of results) {
+        this._flattenMdmFields(device);
+      }
+    } else {
+      for (const device of results) {
+        delete device["mdm_fields"];
+      }
+    }
+    return results;
+  }
+
+  _flattenAssignmentFields(device) {
+    if (device.assignment_detail) {
+      device["assignee_name"] = device.assignment_detail.assignee.last_name + " " + device.assignment_detail.assignee.first_name;
+      device["assignee_uuid"] = device.assignment_detail.assignee.uuid;
+      device["assignee_email"] = device.assignment_detail.assignee.email;
+      // device["利用者_従業員番号"] = device.assignment_detail.assignee.user_id;
+      device["assignment_start_date"] = device.assignment_detail.assignment_start_date;
+    }
+    delete device["assignment_detail"];
+  }
+
+  _flattenCustomFields(device) {
+    if (device.custom_fields) {
+      for (const column of device.custom_fields) {
+        device[String(column.name)] = column.value;
+      }
+    }
+    delete device["custom_fields"];
+  }
+
+  _flattenMdmFields(device) {
+    if (device.mdm_fields) {
+      for (const column of device.mdm_fields) {
+        device["mdm_field_" + String(column.name)] = column.value;
+      }
+    }
+    delete device["mdm_fields"];
+  }
+
+  getDeviceCustomFields() {
+    return this._makeApiRequest('/v1/devices/custom_field_definitions').content.data.map(item => item.name);
+  }
+
+  createDevice(params) {
+    return this._makeApiRequest('/v1/devices', 'post', params).content.data;
+  }
+
+  updateDevice(device_uuid, params) {
+    return this._makeApiRequest(`/v1/devices/${device_uuid}`, 'patch', params).content.data;
+  }
+
+  deleteDevice(device_uuid) {
+    return this._makeApiRequest(`/v1/devices/${device_uuid}`, 'delete');
+  }
+
+  assignDeviceToUser(device_uuid, postData) {
+    return this._makeApiRequest(`/v1/devices/assign/${device_uuid}`, 'post', postData);
+  }
+
+  unAssignDeviceFromUser(device_uuid, postData) {
+    return this._makeApiRequest(`/v1/devices/unassign/${device_uuid}`, 'post', postData);
+  }
+
+  _convertDeviceEnumsToJapanese(device) {
+    device["status"] = statusMappingDeviceEn2Jp[device["status"]];
+  }
 }
 
-const statusMappingEn2JP = {
+const statusMappingEn2Jp = {
   "ONBOARD_INITIATED": "入社前",
   "ONBOARDED": "在籍中",
   "TEMPORARY_LEAVE":"休職中",
@@ -264,7 +367,7 @@ const statusMappingEn2JP = {
   "OTHERS": "その他",
 };
 
-const statusMappingJP2EN = {
+const statusMappingJp2En = {
   "入社前": "ONBOARD_INITIATED",
   "在籍中": "ONBOARDED",
   "休職中": "TEMPORARY_LEAVE",
@@ -273,7 +376,7 @@ const statusMappingJP2EN = {
   "その他": "OTHERS",
 };
 
-const userCategoryMapping = {
+const userCategoryMappingEn2Jp = {
   "BOARD_MEMBER": "役員",
   "FULL_TIME": "正社員",
   "TEMPORARY_EMPLOYEE":"派遣社員",
@@ -284,3 +387,25 @@ const userCategoryMapping = {
   "OTHERS": "その他",
   "SYSTEM": "システム",
 }
+
+const statusMappingDeviceEn2Jp = {
+  "available": "在庫",
+  "in_use": "利用中",
+  "decommissioned": "廃棄/解約",
+  "unknown": "不明"
+}
+
+const statusMappingDeviceJp2En = {
+  "在庫": "available",
+  "利用中": "in_use",
+  "廃棄/解約": "decommissioned",
+  "不明": "unknown"
+}
+
+const UserProfileKeyType = {
+  "USER_ID": "user_id",
+  "EMAIL": "email",
+  "UUID": "uuid"
+}
+
+const deviceDefaultColumns = new Set(["uuid", "asset_number", "device_type", "status", "assignee_name", "assignee_email", "assignee_uuid", "assignee_user_id", "assignment_start_date",	"serial_number", "manufacturer",	"model_number", "model_name",	"source",	"operating_system",	"start_date",	"end_date",	"device_procurement",	"additional_device_information",	"work_location_code",	"departments",	"department_uuids"]);
