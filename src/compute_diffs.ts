@@ -1,6 +1,6 @@
 namespace ComputeDiffs {
     // This converts the headers in sheet to Josys columns. Used for both freee sheet and josys sheet.
-    export const columnsToJosysColumns = {
+    export const memberColumnsToJosysColumns = {
         "ID": "uuid",
         "姓": "last_name",
         "名": "first_name",
@@ -13,35 +13,46 @@ namespace ComputeDiffs {
         // "ユーザー名": "username"
     }
 
-    export const columnsToUpdate = ["status", "start_date", "end_date", "job_title", "user_id"];
-    export const mandatoryColumns = ["last_name", "first_name", "user_id"];
+    export const devicecolumnsToJosysColumns = {
+        "ID": "uuid",
+        "資産番号": "asset_number",
+        "シリアル番号": "serial_number",
+        "メーカー": "manufacturer",
+        "型番": "model_number",
+        "デバイスの種類": "device_type",
+        "デバイス名": "model_number",
+        "OS": "operating_system",
+        "調達日": "start_date",
+        "廃棄日/解約日": "end_date",
+        // "利用者uuid": "assignee_uuid",
+        // "利用開始日": "assignment_start_date",
+    }
 
-    export const computeDiff = (sourceSheetName = "freee", josysSheetName = "josys") => {
-        let josysSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(josysSheetName);
-        if (!josysSheet) {
-            return
-        }
-        let josysMembers = josysSheet.getRange(2, 1, josysSheet.getLastRow(), josysSheet.getLastColumn()).getValues();
-        let josysColumns = josysMembers.shift();
-        josysMembers = Utils.createObjectArrayFrom2dArray(josysColumns, josysMembers);
+    export const memberColumnsToCompareAndUpdate = ["status", "start_date", "end_date", "job_title", "user_id"];
+    export const deviceColumnsToCompareAndUpdate = []; // TODO
+    export const mandatoryMemberColumns = ["last_name", "first_name", "user_id"];
+    export const mandatoryDeviceColumns = ["status", "asset_number"];
 
-        let sourceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sourceSheetName);
-        if (!sourceSheet) {
-            return
-        }
-        let sourceMembers = sourceSheet.getRange(2, 1, sourceSheet.getLastRow(), sourceSheet.getLastColumn()).getValues();
-        let sourceColumns = sourceMembers.shift();
-        sourceMembers = Utils.createObjectArrayFrom2dArray(sourceColumns, sourceMembers);
-
-        ComputeDiffs.modifyObjectsByKeyMapping(josysMembers, ComputeDiffs.columnsToJosysColumns);
-        ComputeDiffs.modifyObjectsByKeyMapping(sourceMembers, ComputeDiffs.columnsToJosysColumns);
-        sourceMembers = ComputeDiffs.removeEmployeesWithoutMandatoryColumns(sourceMembers, ComputeDiffs.mandatoryColumns);
+    export const computeDiff = (sourceMembers, josysMembers) => {
+        ComputeDiffs.modifyObjectsByKeyMapping(josysMembers, ComputeDiffs.memberColumnsToJosysColumns);
+        ComputeDiffs.modifyObjectsByKeyMapping(sourceMembers, {...ComputeDiffs.memberColumnsToJosysColumns, "表示名": "display_name" });
+        sourceMembers = ComputeDiffs.removeMembersWithoutMandatoryColumns(sourceMembers, ComputeDiffs.mandatoryMemberColumns);
         ComputeDiffs.deleteKeys(sourceMembers, new Set(["uuid"]));
 
         Utils.changeDateFormatToString(josysMembers);
         Utils.changeDateFormatToString(sourceMembers);
 
-        return ComputeDiffs.compareAndCategorize(sourceMembers, josysMembers, ComputeDiffs.columnsToUpdate);
+        return ComputeDiffs.compareAndCategorize(sourceMembers, josysMembers, ComputeDiffs.memberColumnsToCompareAndUpdate);
+    };
+
+    export const computeDeviceDiff = (sourceDevices, josysDevices) => {
+        ComputeDiffs.modifyObjectsByKeyMapping(josysDevices, ComputeDiffs.memberColumnsToJosysColumns);
+        ComputeDiffs.modifyObjectsByKeyMapping(sourceDevices, {...ComputeDiffs.devicecolumnsToJosysColumns});
+        sourceDevices = ComputeDiffs.removeMembersWithoutMandatoryColumns(sourceDevices, ComputeDiffs.mandatoryDeviceColumns);
+        ComputeDiffs.deleteKeys(sourceDevices, new Set(["uuid"]));
+        Utils.changeDateFormatToString(josysDevices);
+        Utils.changeDateFormatToString(sourceDevices);
+        return ComputeDiffs.compareAndCategorize(sourceDevices, josysDevices, ComputeDiffs.memberColumnsToCompareAndUpdate);
     };
 
     export const modifyObjectsByKeyMapping = (objects, keyMapping) => {
@@ -59,9 +70,9 @@ namespace ComputeDiffs {
         });
     }
 
-    export const removeEmployeesWithoutMandatoryColumns = (employees, keys) => {
-        return employees.filter(employee => {
-            return keys.every(key => employee.hasOwnProperty(key) && employee[key] !== null && employee[key] !== '');
+    export const removeMembersWithoutMandatoryColumns = (members, keys) => {
+        return members.filter(member => {
+            return keys.every(key => member.hasOwnProperty(key) && member[key] !== null && member[key] !== '');
         });
     }
 
@@ -75,30 +86,33 @@ namespace ComputeDiffs {
         });
     }
 
-    export const compareAndCategorize = (source: Array<{ [key: string]: any }>, josys: Array<{ [key: string]: any }>, ColumnsToCompare: Array<string>) => {
+    export const compareAndCategorize = (source: Array<{ [key: string]: any }>, josys: Array<{ [key: string]: any }>, ColumnsToCompareAndUpdate: Array<string>) => {
         let entriesToAdd: Array<{ [key: string]: any }> = [];
         let entriesToUpdate: Array<{ [key: string]: any }> = [];
 
         const josysByMatchKey = josys.reduce((acc, obj) => {
-            let full_name = obj["first_name"] + " " + obj["last_name"];
+            let full_name = String(obj["last_name"]) + String(obj["first_name"]);
+            full_name = full_name.replace(/\s/g, '');
             acc[full_name] = obj;
             return acc;
         }, {});
 
         source.forEach(srcObj => {
-            let full_name = srcObj["first_name"] + " " + srcObj["last_name"];
+            let full_name = String(srcObj["display_name"]);
+            full_name = full_name.replace(/\s/g, '');
             const josysObj = josysByMatchKey[full_name];
 
             if (!josysObj) {
                 if (srcObj["status"] !== "退職済") {
                     // if new member, only add ones who are still active
+                    delete srcObj["display_name"];
                     entriesToAdd.push(srcObj);
                 }
             } else {
                 const diffObj = { uuid: josysObj.uuid };
                 let isDifferent = false;
 
-                ColumnsToCompare.forEach(key => {
+                ColumnsToCompareAndUpdate.forEach(key => {
                     if (srcObj[key] !== josysObj[key]) {
                         diffObj[key] = srcObj[key];
                         isDifferent = true;

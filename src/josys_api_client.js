@@ -1,4 +1,4 @@
-class JosysApi {
+class JosysApiClient {
   constructor(apiUserKey, apiSecretKey) {
     this.apiUserKey = apiUserKey;
     this.apiSecretKey = apiSecretKey;
@@ -69,10 +69,17 @@ class JosysApi {
     switch (response.getResponseCode()) {
       case 200: // OK
       case 201: // POST successful
-        return {
-          content: JSON.parse(response.getContentText()),
-          headers: response.getAllHeaders()
-        };
+        if (response.getAllHeaders()["Content-Type"].includes("application/json")) {
+          return {
+            content: JSON.parse(response.getContentText()),
+            headers: response.getAllHeaders()
+          };
+        } else {
+          return {
+            content: null,
+            headers: response.getAllHeaders()
+          };
+        }
       case 204: // DELETE successful
         console.log("DELETE successful");
         return {
@@ -124,7 +131,9 @@ class JosysApi {
     return result;
   }
 
-  // Departments Endpoints
+  /**
+   * Department endpoints
+   **/
   getAllDepartments(perPage=50) {
     return this._paginateThrough('/v1/departments', perPage);
   }
@@ -144,6 +153,9 @@ class JosysApi {
     return this._paginateThrough('/v1/departments/search', perPage, 'post', searchParams);
   }
 
+  /**
+   * User Profile endpoints
+   **/
   getAllUserProfiles(perPage = 100, returnEnumsInJapanese=true, getDepartments=true) {
     const results = this._paginateThrough('/v1/user_profiles', perPage);
 
@@ -254,6 +266,9 @@ class JosysApi {
     }
   }
 
+  /**
+   * Device endpoints
+   **/
   searchDevices(searchParams, perPage=100, returnCustomFields=true, returnMdmFields=true, returnEnumsInJapanese=true) {
     let results = this._paginateThrough('/v1/devices/search', perPage, 'post', searchParams);
     if (!results) {
@@ -305,7 +320,7 @@ class JosysApi {
       device["assignee_name"] = device.assignment_detail.assignee.last_name + " " + device.assignment_detail.assignee.first_name;
       device["assignee_uuid"] = device.assignment_detail.assignee.uuid;
       device["assignee_email"] = device.assignment_detail.assignee.email;
-      // device["利用者_従業員番号"] = device.assignment_detail.assignee.user_id;
+      device["assignee_user_id"] = device.assignment_detail.assignee.user_id;
       device["assignment_start_date"] = device.assignment_detail.assignment_start_date;
     }
     delete device["assignment_detail"];
@@ -349,7 +364,7 @@ class JosysApi {
     return this._makeApiRequest(`/v1/devices/assign/${device_uuid}`, 'post', postData);
   }
 
-  unAssignDeviceFromUser(device_uuid, postData) {
+  unassignDeviceFromUser(device_uuid, postData) {
     return this._makeApiRequest(`/v1/devices/unassign/${device_uuid}`, 'post', postData);
   }
 
@@ -388,18 +403,30 @@ const userCategoryMappingEn2Jp = {
   "SYSTEM": "システム",
 }
 
+const userCategoryMappingJp2En = {
+  "役員": "BOARD_MEMBER",
+  "正社員": "FULL_TIME",
+  "派遣社員":"TEMPORARY_EMPLOYEE",
+  "業務委託": "SUBCONTRACTOR",
+  "パート・アルバイト": "PART_TIME",
+  "出向社員": "TRANSFEREE",
+  "契約社員": "CONTRACTOR",
+  "その他": "OTHERS",
+  "システム": "SYSTEM",
+}
+
 const statusMappingDeviceEn2Jp = {
-  "available": "在庫",
-  "in_use": "利用中",
-  "decommissioned": "廃棄/解約",
-  "unknown": "不明"
+  "AVAILABLE": "在庫",
+  "IN_USE": "利用中",
+  "DECOMMISSIONED": "廃棄/解約",
+  "UNKNOWN": "不明"
 }
 
 const statusMappingDeviceJp2En = {
-  "在庫": "available",
-  "利用中": "in_use",
-  "廃棄/解約": "decommissioned",
-  "不明": "unknown"
+  "在庫": "AVAILABLE",
+  "利用中": "IN_USE",
+  "廃棄/解約": "DECOMMISSIONED",
+  "不明": "UNKNOWN"
 }
 
 const UserProfileKeyType = {

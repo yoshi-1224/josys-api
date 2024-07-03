@@ -1,11 +1,6 @@
-const freeeAuthSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("認証情報");
-const freeeClientId = freeeAuthSheet.getRange("C14").getValue();
-const freeeClientSecret = freeeAuthSheet.getRange("C15").getValue();
-const companyIdCell = freeeAuthSheet.getRange("C18");
-const companyNameCell = freeeAuthSheet.getRange("C17");
-
 function authCallback(request) {
-  var service = new FreeeApi(freeeClientId, freeeClientSecret).getService_();
+  const [freeeClientId, freeeClientSecret] = _getFreeeCredentials();
+  var service = new FreeeApiClient(freeeClientId, freeeClientSecret).getService_();
   var isAuthorized = service.handleCallback(request);
   if (isAuthorized) {
     Logger.log("認証に成功しました。タブを閉じてください。");
@@ -18,7 +13,8 @@ function authCallback(request) {
 
 function runAuth() {
   var template = HtmlService.createTemplateFromFile("認証ダイアログ");
-  var authorizationUrl = new FreeeApi(freeeClientId, freeeClientSecret).getService_().getAuthorizationUrl();
+  const [freeeClientId, freeeClientSecret] = _getFreeeCredentials();
+  var authorizationUrl = new FreeeApiClient(freeeClientId, freeeClientSecret).getService_().getAuthorizationUrl();
   template.authorizationUrl = authorizationUrl;
   var page = template.evaluate();
   SpreadsheetApp.getUi().showModalDialog(page, "認証をしてください");
@@ -30,41 +26,61 @@ function clearService() {
     .reset();
 }
 
-function getFreeeCredentials() {
-  return [freeeClientId, freeeClientSecret];
-}
-
-function getFreeCompanyId() {
-  return companyIdCell.getValue();
-}
-
 function setFreeeCompanyId() {
-  let freeeCompanyId = companyIdCell.getValue();
-  if (!companyNameCell.getValue() || companyNameCell.getValue() === "") {
-    companyIdCell.setValue(`事業所名を入力してください`);  
+  const freeeCompanyName = _getFreeCompanyName();
+  if (!freeeCompanyName || freeeCompanyName === "") {
+    _setFreeeCompanyIdCell(`事業所名を入力してください`);  
     return;
   }
-  const [clientId, clientSecret] = getFreeeCredentials();
-  let companies = new FreeeApi(clientId, clientSecret).getCompanies();
+  const [clientId, clientSecret] = _getFreeeCredentials();
+  let companies = new FreeeApiClient(clientId, clientSecret).getCompanies();
+  let freeeCompanyId;
   for (c of companies) {
-    if (c["display_name"] === companyNameCell.getValue()) {
+    if (c["display_name"] === freeeCompanyName) {
       freeeCompanyId = c["id"];
-      companyIdCell.setValue(freeeCompanyId);
+      _setFreeeCompanyIdCell(freeeCompanyId)
       return freeeCompanyId;
     }
   }
-  companyIdCell.setValue(`"${companyNameCell.getValue()}"が見つかりませんでした`);  
+  _setFreeeCompanyIdCell(`"${freeeCompanyName}"が見つかりませんでした`);
 }
 
-function writeFreeeMembersToSheet(freeeSheetName = "freee", headerRow = 1, companyId, app) {
-  const results = _getEmployeesFromFreee(companyId, app);
+function _getFreeeAuthSheet() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME);
+}
+
+function _getFreeeCredentials() {
+  const authSheet = _getFreeeAuthSheet();
+  return [authSheet.getRange("C14").getValue(), authSheet.getRange("C15").getValue()];
+}
+
+function _getFreeeCompanyId() {
+  const authSheet = _getFreeeAuthSheet();
+  return authSheet.getRange("C18").getValue();
+}
+
+function _setFreeeCompanyIdCell(val) {
+  const authSheet = _getFreeeAuthSheet();
+  authSheet.getRange("C18").setValue(val);
+}
+
+function _getFreeCompanyName() {
+  const authSheet = _getFreeeAuthSheet();
+  return authSheet.getRange("C17").getValue();
+}
+
+function writeFreeeMembersToSheet(freeeSheetName, headerRow = 1) {
+  const companyId = _getFreeeCompanyId();
+  const [freeeClientId, freeeClientSecret] = _getFreeeCredentials();
+  const freeeApiClient = new FreeeApiClient(freeeClientId, freeeClientSecret);
+  const results = _getEmployeesFromFreee(companyId, freeeApiClient);
   const columns = Utils.getColumnsFromSheet(freeeSheetName, headerRow);
   Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), freeeSheetName, headerRow + 2, 1);
 }
 
-function _getEmployeesFromFreee(companyId, app) {
-  let results = _mergeEmployeesList(app.getAllEmployees(companyId), app.getEmployees(companyId));
-  results = _mergeEmployeesList(results, app.getGroupMemberships(companyId));
+function _getEmployeesFromFreee(companyId, freeeApiClient) {
+  let results = _mergeEmployeesList(freeeApiClient.getAllEmployees(companyId), freeeApiClient.getEmployees(companyId));
+  results = _mergeEmployeesList(results, freeeApiClient.getGroupMemberships(companyId));
   _add_status(results);
   return results;
 }

@@ -5,6 +5,13 @@ namespace Utils {
     });
   }
 
+  export const writeObjectArrayToSheet = (objects: any[], sheetName: string, startRow: number, startCol: number, clearRange=false) => {
+    const keys = Utils.extractUniqueKeys(objects);
+    const data = Utils.createOrdered2dArrray(objects, keys);
+    data.unshift(keys);
+    Utils.writeArrayToSheet(data, sheetName, startRow, startCol, clearRange);
+  }
+
   export const writeArrayToSheet = (data2dArray: any[], sheetName: string, startRow: number, startCol: number, clearRange=false) => {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
     if (!sheet) {
@@ -17,7 +24,7 @@ namespace Utils {
       return;
     }
   
-    if (clearRange) {
+    if (clearRange && sheet.getLastRow() !== 0) {
       sheet.getRange(startRow, startCol, sheet.getLastRow(), sheet.getLastColumn()).clearContent();
     }
   
@@ -87,7 +94,7 @@ namespace Utils {
   export const clearSheet = (sheetName: string) => {
     let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)!;
     if (!sheet) {
-      return
+      return;
     }
     sheet.clearContents();
   }

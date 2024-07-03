@@ -1,32 +1,41 @@
-function getJosysCredentials() {
-  const worksheet = SpreadsheetApp.getActiveSpreadsheet()
-  const authSheet = worksheet.getSheetByName("認証情報");
-  const apiUserKey = authSheet.getRange("C6").getValue();
-  const apiUserSecret = authSheet.getRange("C7").getValue();
-  return [apiUserKey, apiUserSecret];
-}
-
-function writeJosysMembersToSheet(app, sheetName="josys", headerRow=1) {
-  let params = {
+function writeJosysMembersToSheet(apiClient, sheetName, headerRow=1) {
+  const params = {
     "status": {
         "operator": "equals",
         "value": ["ONBOARDED", "ONBOARD_INITIATED"]
     }
   }
-  const results = app.searchUserProfiles(params, 1000);
+  const results = apiClient.searchUserProfiles(params, 1000);
   if (!results) {
     return;
   }
   const columns = Utils.getColumnsFromSheet(sheetName, headerRow);
-  Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, headerRow + 2, 1, true);
+  const writeFromRow = headerRow + 2;
+  Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, writeFromRow, 1, true);
 }
 
-function _uploadMembers(app, employees) {
+function writeJosysDevicesToSheet(apiClient, sheetName, headerRow=1) {
+  const params = {
+    "status": {
+      "operator": "equals",
+      "value": ["AVAILABLE", "IN_USE", "DECOMMISSIONED", "UNKNOWN"]
+    }
+  }
+  const results = apiClient.searchDevices(params, 1000);
+  if (!results) {
+    return;
+  }
+  const columns = Utils.getColumnsFromSheet(sheetName, headerRow);
+  const writeFromRow = headerRow + 2;
+  Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, writeFromRow, 1, true);
+}
+
+function uploadMembers(apiClient, employees) {
   const results = [];
   for (const e of employees) {
-    e["status"] = statusMappingJP2EN[e["status"]];    
+    e["status"] = statusMappingJP2EN[e["status"]];
     try {
-      app.createUserProfile(e);
+      apiClient.createUserProfile(e);
       results.push("SUCCESSFUL");
     } catch (error) {
       results.push(error);
@@ -35,7 +44,7 @@ function _uploadMembers(app, employees) {
   return results;
 }
 
-function _updateMembers(app, employees) {
+function updateMembers(apiClient, employees) {
   const results = [];
   for (const e of employees) {
     if(e["status"]) {
@@ -44,7 +53,7 @@ function _updateMembers(app, employees) {
     try {
       let uuid = e["uuid"];
       delete e["uuid"];
-      let res = app.updateUserProfile(uuid, e);
+      let res = apiClient.updateUserProfile(uuid, e);
       if (!res) {
         results.push("404 NOT FOUND");
       } else {

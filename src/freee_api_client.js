@@ -1,4 +1,4 @@
-class FreeeApi {
+class FreeeApiClient {
   constructor(clientId, clientSecret) {
     if (clientId === null || clientSecret === null) {
       Logger.log("Either token or secret is invalid. Please check");
@@ -38,7 +38,7 @@ class FreeeApi {
     if (employee["group_memberships"] && employee["group_memberships"].length > 0) {
       employee["position"] = employee.group_memberships[0].position_name;
     } else {
-      employee["position"] = "";""
+      employee["position"] = "";
     }
     delete employee["group_memberships"];
   }
