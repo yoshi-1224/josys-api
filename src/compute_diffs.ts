@@ -13,25 +13,8 @@ namespace ComputeDiffs {
         // "ユーザー名": "username"
     }
 
-    export const devicecolumnsToJosysColumns = {
-        "ID": "uuid",
-        "資産番号": "asset_number",
-        "シリアル番号": "serial_number",
-        "メーカー": "manufacturer",
-        "型番": "model_number",
-        "デバイスの種類": "device_type",
-        "デバイス名": "model_number",
-        "OS": "operating_system",
-        "調達日": "start_date",
-        "廃棄日/解約日": "end_date",
-        // "利用者uuid": "assignee_uuid",
-        // "利用開始日": "assignment_start_date",
-    }
-
     export const memberColumnsToCompareAndUpdate = ["status", "start_date", "end_date", "job_title", "user_id"];
-    export const deviceColumnsToCompareAndUpdate = []; // TODO
     export const mandatoryMemberColumns = ["last_name", "first_name", "user_id"];
-    export const mandatoryDeviceColumns = ["status", "asset_number"];
 
     export const computeDiff = (sourceMembers, josysMembers) => {
         ComputeDiffs.modifyObjectsByKeyMapping(josysMembers, ComputeDiffs.memberColumnsToJosysColumns);
@@ -39,20 +22,7 @@ namespace ComputeDiffs {
         sourceMembers = ComputeDiffs.removeMembersWithoutMandatoryColumns(sourceMembers, ComputeDiffs.mandatoryMemberColumns);
         ComputeDiffs.deleteKeys(sourceMembers, new Set(["uuid"]));
 
-        Utils.changeDateFormatToString(josysMembers);
-        Utils.changeDateFormatToString(sourceMembers);
-
         return ComputeDiffs.compareAndCategorize(sourceMembers, josysMembers, ComputeDiffs.memberColumnsToCompareAndUpdate);
-    };
-
-    export const computeDeviceDiff = (sourceDevices, josysDevices) => {
-        ComputeDiffs.modifyObjectsByKeyMapping(josysDevices, ComputeDiffs.memberColumnsToJosysColumns);
-        ComputeDiffs.modifyObjectsByKeyMapping(sourceDevices, {...ComputeDiffs.devicecolumnsToJosysColumns});
-        sourceDevices = ComputeDiffs.removeMembersWithoutMandatoryColumns(sourceDevices, ComputeDiffs.mandatoryDeviceColumns);
-        ComputeDiffs.deleteKeys(sourceDevices, new Set(["uuid"]));
-        Utils.changeDateFormatToString(josysDevices);
-        Utils.changeDateFormatToString(sourceDevices);
-        return ComputeDiffs.compareAndCategorize(sourceDevices, josysDevices, ComputeDiffs.memberColumnsToCompareAndUpdate);
     };
 
     export const modifyObjectsByKeyMapping = (objects, keyMapping) => {

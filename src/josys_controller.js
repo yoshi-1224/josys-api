@@ -65,3 +65,35 @@ function updateMembers(apiClient, employees) {
   }
   return results;
 }
+
+function uploadDevices(apiClient, devices) {
+  const results = [];
+  for (const d of devices) {
+    try {
+      apiClient.createDevice(d);
+      results.push("SUCCESSFUL");
+    } catch (error) {
+      results.push(error);
+    }
+  }
+  return results;
+}
+
+function updateDevices(apiClient, devices) {
+  const results = [];
+  for (const d of devices) {
+    try {
+      let uuid = d["uuid"];
+      delete d["uuid"];
+      let res = apiClient.updateDevice(uuid, d);
+      if (!res) {
+        results.push("404 NOT FOUND");
+      } else {
+        results.push("SUCCESSFUL");
+      }
+    } catch (error) {
+      results.push(error);
+    }
+  }
+  return results;
+}

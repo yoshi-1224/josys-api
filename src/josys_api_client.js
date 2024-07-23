@@ -317,11 +317,11 @@ class JosysApiClient {
 
   _flattenAssignmentFields(device) {
     if (device.assignment_detail) {
-      device["assignee_name"] = device.assignment_detail.assignee.last_name + " " + device.assignment_detail.assignee.first_name;
-      device["assignee_uuid"] = device.assignment_detail.assignee.uuid;
-      device["assignee_email"] = device.assignment_detail.assignee.email;
-      device["assignee_user_id"] = device.assignment_detail.assignee.user_id;
-      device["assignment_start_date"] = device.assignment_detail.assignment_start_date;
+      device["assignee.name"] = device.assignment_detail.assignee.last_name + " " + device.assignment_detail.assignee.first_name;
+      device["assignee.uuid"] = device.assignment_detail.assignee.uuid;
+      device["assignee.email"] = device.assignment_detail.assignee.email;
+      device["assignee.user_id"] = device.assignment_detail.assignee.user_id;
+      device["assignment.start_date"] = device.assignment_detail.assignment_start_date;
     }
     delete device["assignment_detail"];
   }
@@ -329,7 +329,7 @@ class JosysApiClient {
   _flattenCustomFields(device) {
     if (device.custom_fields) {
       for (const column of device.custom_fields) {
-        device[String(column.name)] = column.value;
+        device[`custom_fields.${String(column.name)}`] = column.value;
       }
     }
     delete device["custom_fields"];
@@ -338,7 +338,7 @@ class JosysApiClient {
   _flattenMdmFields(device) {
     if (device.mdm_fields) {
       for (const column of device.mdm_fields) {
-        device["mdm_field_" + String(column.name)] = column.value;
+        device[`mdm_field.${String(column.name)}`] = column.value;
       }
     }
     delete device["mdm_fields"];

@@ -80,17 +80,6 @@ namespace Utils {
       return `${year}-${formattedMonth}-${formattedDay}`;
   }
   
-  export const changeDateFormatToString = (employees) => {
-     for (const e of employees) {
-      if (e["start_date"]) {
-        e["start_date"] = Utils.formatDateToYYYYMMDD(new Date(e["start_date"]));
-      }
-      if (e["end_date"]) {
-        e["end_date"] = Utils.formatDateToYYYYMMDD(new Date(e["end_date"]));
-      }
-    }
-  }
-  
   export const clearSheet = (sheetName: string) => {
     let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)!;
     if (!sheet) {
