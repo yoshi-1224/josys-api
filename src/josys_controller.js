@@ -54,7 +54,10 @@ function uploadMembers(employees) {
   const apiClient = getJosysApiClient();
   const results = [];
   for (const e of employees) {
-    e["status"] = statusMappingJP2EN[e["status"]];
+    e["status"] = memberStatusMappingJp2En[e["status"]];
+    if(e["user_category"]) {
+      e["user_category"] = userCategoryMappingJp2En(e["user_category"]);
+    }
     try {
       apiClient.createUserProfile(e);
       results.push("SUCCESSFUL");
@@ -70,8 +73,11 @@ function updateMembers(employees) {
   const results = [];
   for (const e of employees) {
     if(e["status"]) {
-      e["status"] = statusMappingJP2EN[e["status"]];
-    } 
+      e["status"] = memberStatusMappingJp2En[e["status"]];
+    }
+    if(e["user_category"]) {
+      e["user_category"] = userCategoryMappingJp2En(e["user_category"]);
+    }
     try {
       let uuid = e["uuid"];
       delete e["uuid"];

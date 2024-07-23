@@ -260,9 +260,9 @@ class JosysApiClient {
   }
 
   _convertUserProfileEnumsToJapanese(profile) {
-    profile["status"] = statusMappingEn2Jp[profile["status"]];
+    profile["status"] = memberStatusMappingEn2Jp[profile["status"]];
     if (profile["user_category"]) {
-      profile["user_category"] = statusMappingEn2Jp[profile["user_category"]];
+      profile["user_category"] = userCategoryMappingEn2Jp[profile["user_category"]];
     }
   }
 
@@ -369,11 +369,11 @@ class JosysApiClient {
   }
 
   _convertDeviceEnumsToJapanese(device) {
-    device["status"] = statusMappingDeviceEn2Jp[device["status"]];
+    device["status"] = deviceStatusMappingEn2Jp[device["status"]];
   }
 }
 
-const statusMappingEn2Jp = {
+const memberStatusMappingEn2Jp = {
   "ONBOARD_INITIATED": "入社前",
   "ONBOARDED": "在籍中",
   "TEMPORARY_LEAVE":"休職中",
@@ -382,7 +382,7 @@ const statusMappingEn2Jp = {
   "OTHERS": "その他",
 };
 
-const statusMappingJp2En = {
+const memberStatusMappingJp2En = {
   "入社前": "ONBOARD_INITIATED",
   "在籍中": "ONBOARDED",
   "休職中": "TEMPORARY_LEAVE",
@@ -415,24 +415,24 @@ const userCategoryMappingJp2En = {
   "システム": "SYSTEM",
 }
 
-const statusMappingDeviceEn2Jp = {
+const deviceStatusMappingEn2Jp = {
   "AVAILABLE": "在庫",
   "IN_USE": "利用中",
   "DECOMMISSIONED": "廃棄/解約",
   "UNKNOWN": "不明"
 }
 
-const statusMappingDeviceJp2En = {
-  "在庫": "AVAILABLE",
-  "利用中": "IN_USE",
-  "廃棄/解約": "DECOMMISSIONED",
-  "不明": "UNKNOWN"
-}
+// const deviceStatusMappingJp2En = {
+//   "在庫": "AVAILABLE",
+//   "利用中": "IN_USE",
+//   "廃棄/解約": "DECOMMISSIONED",
+//   "不明": "UNKNOWN"
+// }
 
-const UserProfileKeyType = {
-  "USER_ID": "user_id",
-  "EMAIL": "email",
-  "UUID": "uuid"
-}
+// const UserProfileKeyType = {
+//   "USER_ID": "user_id",
+//   "EMAIL": "email",
+//   "UUID": "uuid"
+// }
 
-const deviceDefaultColumns = new Set(["uuid", "asset_number", "device_type", "status", "assignee_name", "assignee_email", "assignee_uuid", "assignee_user_id", "assignment_start_date",	"serial_number", "manufacturer",	"model_number", "model_name",	"source",	"operating_system",	"start_date",	"end_date",	"device_procurement",	"additional_device_information",	"work_location_code",	"departments",	"department_uuids"]);
+// const deviceDefaultColumns = new Set(["uuid", "asset_number", "device_type", "status", "assignee_name", "assignee_email", "assignee_uuid", "assignee_user_id", "assignment_start_date",	"serial_number", "manufacturer",	"model_number", "model_name",	"source",	"operating_system",	"start_date",	"end_date",	"device_procurement",	"additional_device_information",	"work_location_code",	"departments",	"department_uuids"]);
