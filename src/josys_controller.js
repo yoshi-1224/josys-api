@@ -1,4 +1,23 @@
-function writeJosysMembersToSheet(apiClient, sheetName, headerRow=1) {
+let josysApiClient = null;
+
+function getJosysApiCredentials() {
+  const authSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME);
+  const apiUserKey = authSheet.getRange("C6").getValue();
+  const apiUserSecret = authSheet.getRange("C7").getValue();
+  return [apiUserKey, apiUserSecret];
+}
+
+function getJosysApiClient() {
+  if (josysApiClient) {
+    return josysApiClient;
+  }
+  const [apiUserKey, apiUserSecret] = getJosysApiCredentials();
+  josysApiClient = new JosysApiClient(apiUserKey, apiUserSecret);
+  return josysApiClient;
+}
+
+function writeJosysMembersToSheet(sheetName, headerRow=1) {
+  const apiClient = getJosysApiClient();
   const params = {
     "status": {
         "operator": "equals",
@@ -14,7 +33,8 @@ function writeJosysMembersToSheet(apiClient, sheetName, headerRow=1) {
   Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, writeFromRow, 1, true);
 }
 
-function writeJosysDevicesToSheet(apiClient, sheetName, headerRow=1) {
+function writeJosysDevicesToSheet(sheetName, headerRow=1) {
+  const apiClient = getJosysApiClient();
   const params = {
     "status": {
       "operator": "equals",
@@ -30,7 +50,8 @@ function writeJosysDevicesToSheet(apiClient, sheetName, headerRow=1) {
   Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, writeFromRow, 1, true);
 }
 
-function uploadMembers(apiClient, employees) {
+function uploadMembers(employees) {
+  const apiClient = getJosysApiClient();
   const results = [];
   for (const e of employees) {
     e["status"] = statusMappingJP2EN[e["status"]];
@@ -44,7 +65,8 @@ function uploadMembers(apiClient, employees) {
   return results;
 }
 
-function updateMembers(apiClient, employees) {
+function updateMembers(employees) {
+  const apiClient = getJosysApiClient();
   const results = [];
   for (const e of employees) {
     if(e["status"]) {
@@ -66,7 +88,8 @@ function updateMembers(apiClient, employees) {
   return results;
 }
 
-function uploadDevices(apiClient, devices) {
+function uploadDevices(devices) {
+  const apiClient = getJosysApiClient();
   const results = [];
   for (const d of devices) {
     try {
@@ -79,7 +102,8 @@ function uploadDevices(apiClient, devices) {
   return results;
 }
 
-function updateDevices(apiClient, devices) {
+function updateDevices(devices) {
+  const apiClient = getJosysApiClient();
   const results = [];
   for (const d of devices) {
     try {

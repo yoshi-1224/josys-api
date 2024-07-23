@@ -10,14 +10,6 @@ const DEVICE_CONFIG_SHEET_NAME = "デバイス同期設定";
 const FREEE_EMPLOYEES_OUTPUT_SHEET_NAME = "freee_members";
 const errorOutputCell = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("C1");
 
-function getJosysCredentials() {
-  const worksheet = SpreadsheetApp.getActiveSpreadsheet()
-  const authSheet = worksheet.getSheetByName(MAIN_SHEET_NAME);
-  const apiUserKey = authSheet.getRange("C6").getValue();
-  const apiUserSecret = authSheet.getRange("C7").getValue();
-  return [apiUserKey, apiUserSecret];
-}
-
 function mainFuncForMembers() {
   try {
     getJosysMembers();
@@ -29,7 +21,7 @@ function mainFuncForMembers() {
   syncMembersToJosys();
 }
 
-function mainFuncForDevies() {
+function mainFuncForDevices() {
   try {
     getJosysDevices();
     getJamfDevices();
@@ -43,13 +35,11 @@ function mainFuncForDevies() {
 function syncMembersToJosys() {
   try {
     const [employeesToAdd, employeesToUpdate] = writeMemberDiffsToSheet();
-    const [apiUserKey, apiUserSecret] = getJosysCredentials();
-    const josysApiClient = new JosysApiClient(apiUserKey, apiUserSecret);
     if (employeesToAdd.length > 0) {
-      postNewMembersToJosys(josysApiClient, employeesToAdd);
+      postNewMembersToJosys(employeesToAdd);
     }
     if (employeesToUpdate.length > 0) {
-      updateMembersOnJosys(josysApiClient, employeesToUpdate);
+      updateMembersOnJosys(employeesToUpdate);
     }
   } catch (error) {
     console.error(error);
@@ -60,13 +50,11 @@ function syncMembersToJosys() {
 function syncDevicesToJosys() {
   try {
     const [devicesToAdd, devicesToUpdate] = writeDeviceDiffsToSheet();
-    const [apiUserKey, apiUserSecret] = getJosysCredentials();
-    const josysApiClient = new JosysApiClient(apiUserKey, apiUserSecret);
     if (devicesToAdd.length > 0) {
-      postNewDevicesToJosys(josysApiClient, devicesToAdd);
+      postNewDevicesToJosys(devicesToAdd);
     }
     if (devicesToUpdate.length > 0) {
-      updateDevicesOnJosys(josysApiClient, devicesToUpdate);
+      updateDevicesOnJosys(devicesToUpdate);
     }
   } catch (error) {
     console.error(error);
@@ -78,25 +66,21 @@ function getJosysMembers(target_sheet="") {
   if (target_sheet === "") {
     target_sheet = JOSYS_MEMBERS_OUTPUT_SHEET_NAME;
   }
-  const [apiUserKey, apiUserSecret] = getJosysCredentials();
-  const josysApiClient = new JosysApiClient(apiUserKey, apiUserSecret);
-  writeJosysMembersToSheet(josysApiClient, target_sheet);
+  writeJosysMembersToSheet(target_sheet);
 }
 
 function getJosysDevices(target_sheet="") {
   if (target_sheet === "") {
     target_sheet = JOSYS_DEVICES_OUTPUT_SHEET_NAME;
   }
-   const [apiUserKey, apiUserSecret] = getJosysCredentials();
-  const josysApiClient = new JosysApiClient(apiUserKey, apiUserSecret);
-  writeJosysDevicesToSheet(josysApiClient, target_sheet);
+  writeJosysDevicesToSheet(target_sheet);
 }
 
 function getFreeeMembers(target_sheet="") {
   if (target_sheet === "") {
     target_sheet = FREEE_EMPLOYEES_OUTPUT_SHEET_NAME;
   }
-  writeFreeeMembersToSheet(target_sheet, 1);
+  writeFreeeMembersToSheet(target_sheet);
 }
 
 function writeMemberDiffsToSheet(sourceSheet="", josysSheet="") {
@@ -143,7 +127,6 @@ function writeDeviceDiffsToSheet(sourceSheet="", josysSheet="") {
   Utils.clearSheet(UPDATED_DEVICES_OUTPUT_SHEET_NAME);
 
   if (devicesToAdd.length > 0) {
-    
     Utils.writeObjectArrayToSheet(devicesToAdd, NEW_DEVICES_OUTPUT_SHEET_NAME, 1, 1, true);
   }
   if (devicesToUpdate.length > 0) {
@@ -153,33 +136,33 @@ function writeDeviceDiffsToSheet(sourceSheet="", josysSheet="") {
   return [devicesToAdd, devicesToUpdate];
 }
 
-function postNewDevicesToJosys(josysApiClient, devicesToAdd) {
+function postNewDevicesToJosys(devicesToAdd) {
   const lastRange = getLastRange(NEW_DEVICES_OUTPUT_SHEET_NAME, devicesToAdd.length);
-  let results = uploadDevices(josysApiClient, devicesToAdd);
+  let results = uploadDevices(devicesToAdd);
   lastRange.setValues(results.map(function (item) {
     return [item]; // Wrap each item in an array
   }));
 }
 
-function updateDevicesOnJosys(josysApiClient, devicesToUpdate) {
+function updateDevicesOnJosys(devicesToUpdate) {
   const lastRange = getLastRange(UPDATED_DEVICES_OUTPUT_SHEET_NAME, devicesToUpdate.length);
-  let results = updateDevices(josysApiClient, devicesToUpdate);
+  let results = updateDevices(devicesToUpdate);
   lastRange.setValues(results.map(function (item) {
     return [item]; // Wrap each item in an array
   }));
 }
 
-function postNewMembersToJosys(josysApiClient, employeesToAdd) {
+function postNewMembersToJosys(employeesToAdd) {
     const lastRange = getLastRange(NEW_EMPLOYEES_OUTPUT_SHEET_NAME, employeesToAdd.length);
-    let results = uploadMembers(josysApiClient, employeesToAdd);
+    let results = uploadMembers(employeesToAdd);
     lastRange.setValues(results.map(function (item) {
       return [item]; // Wrap each item in an array
     }));
 }
 
-function updateMembersOnJosys(josysApiClient, employeesToUpdate) {
+function updateMembersOnJosys(employeesToUpdate) {
   const lastRange = getLastRange(UPDATED_EMPLOYEES_OUTPUT_SHEET_NAME, employeesToUpdate.length);
-  let results = updateMembers(josysApiClient, employeesToUpdate);
+  let results = updateMembers(employeesToUpdate);
   lastRange.setValues(results.map(function (item) {
     return [item]; // Wrap each item in an array
   }));
