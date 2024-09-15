@@ -6,8 +6,8 @@ class JamfApiClient {
     this.accessToken = null;
   }
 
-  _getAccessToken() {
-    if (this.accessToken && this._isTokenStillValid()) {
+  _getAccessToken(forceRefresh=false) {
+    if (this.accessToken && !forceRefresh) {
       return this.accessToken;
     }
 
@@ -42,7 +42,7 @@ class JamfApiClient {
     let response = UrlFetchApp.fetch(url, options);
     if (response.getResponseCode() === 401) { // token error
       console.log("Refreshing token and tying again");
-      headers['Authorization'] = `Bearer ${this._getToken(forceRefresh=true)}`;
+      headers['Authorization'] = `Bearer ${this._getAccessToken(forceRefresh=true)}`;
       response = UrlFetchApp.fetch(url, options);
     }
     switch (response.getResponseCode()) {
@@ -73,17 +73,6 @@ class JamfApiClient {
       }
     }
 
-  /**
-   * Paginates through API responses for a given endpoint.
-   * This function handles pagination logic for API requests that return paginated data.
-   * It continues to make requests until all pages have been fetched or until an error occurs.
-   *
-   * @param {string} endpoint - The API endpoint to make requests to.
-   * @param {number} perPage - The number of items per page.
-   * @param {string} [method='get'] - The HTTP method to use for the requests.
-   * @param {Object} [postData={}] - The data to be sent in the case of a POST request.
-   * @returns {Array} An array containing all items from all pages of the API response.
-   */
   _paginateThrough(endpoint, perPage, method='get', postData={}) {
     let results = [];
     let totalCount = 0;

@@ -1,3 +1,5 @@
 package-lock.json
 text.txt
 node_modules
+.DS_Store
+test.json
