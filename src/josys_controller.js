@@ -2,8 +2,8 @@ let josysApiClient = null;
 
 function getJosysApiCredentials() {
   const authSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME);
-  const apiUserKey = authSheet.getRange("C6").getValue();
-  const apiUserSecret = authSheet.getRange("C7").getValue();
+  const apiUserKey = authSheet.getRange(CREDENTIALS_JOSYS_USER_KEY).getValue();
+  const apiUserSecret = authSheet.getRange(CREDENTIALS_JOSYS_USER_SECRET).getValue();
   return [apiUserKey, apiUserSecret];
 }
 

@@ -51,22 +51,22 @@ function _getFreeeAuthSheet() {
 
 function _getFreeeCredentials() {
   const authSheet = _getFreeeAuthSheet();
-  return [authSheet.getRange("C14").getValue(), authSheet.getRange("C15").getValue()];
+  return [authSheet.getRange(CREDENTIALS_FREEE_CLIENT_ID).getValue(), authSheet.getRange(CREDENTIALS_FREEE_CLIENT_SECRET).getValue()];
 }
 
 function _getFreeeCompanyId() {
   const authSheet = _getFreeeAuthSheet();
-  return authSheet.getRange("C18").getValue();
+  return authSheet.getRange(CREDENTIALS_FREEE_COMPANY_ID).getValue();
 }
 
 function _setFreeeCompanyIdCell(val) {
   const authSheet = _getFreeeAuthSheet();
-  authSheet.getRange("C18").setValue(val);
+  authSheet.getRange(CREDENTIALS_FREEE_COMPANY_ID).setValue(val);
 }
 
 function _getFreeCompanyName() {
   const authSheet = _getFreeeAuthSheet();
-  return authSheet.getRange("C17").getValue();
+  return authSheet.getRange(CREDENTIALS_FREEE_COMPANY_NAME).getValue();
 }
 
 function writeFreeeMembersToSheet(freeeSheetName, headerRow = 1) {

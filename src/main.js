@@ -1,35 +1,81 @@
 const MAIN_SHEET_NAME = "認証情報";
-const NEW_EMPLOYEES_OUTPUT_SHEET_NAME = "new_employees";
-const UPDATED_EMPLOYEES_OUTPUT_SHEET_NAME = "updated_employees";
-const NEW_DEVICES_OUTPUT_SHEET_NAME = "new_devices";
-const UPDATED_DEVICES_OUTPUT_SHEET_NAME = "updated_devices";
-const JOSYS_MEMBERS_OUTPUT_SHEET_NAME = "josys_members";
-const JOSYS_DEVICES_OUTPUT_SHEET_NAME = "josys_devices";
-const JAMF_DEVICES_OUTPUT_SHEET_NAME = "jamf_devices";
+const CREDENTIALS_JAMF_SERVER_DOMAIN = "F5";
+const CREDENTIALS_JAMF_LOGIN_ID = "F6";
+const CREDENTIALS_JAMF_PASSWORD = "F7";
+const CREDENTIALS_HRBRAIN_SUBDOMAIN = "I14";
+const CREDENTIALS_HRBRAIN_TOKEN = "I15";
+const CREDENTIALS_FREEE_CLIENT_ID = "I5";
+const CREDENTIALS_FREEE_CLIENT_SECRET = "I6";
+const CREDENTIALS_FREEE_SCRIPT_ID = "I7";
+const CREDENTIALS_FREEE_COMPANY_NAME = "I8";
+const CREDENTIALS_FREEE_COMPANY_ID = "I9";
+const CREDENTIALS_JOSYS_USER_KEY = "C5";
+const CREDENTIALS_JOSYS_USER_SECRET = "C6";
+const OUTPUT_SHEET_NAME_NEW_EMPLOYEES = "new_employees";
+const OUTPUT_SHEET_NAME_UPDATED_EMPLOYEES = "updated_employees";
+const OUTPUT_SHEET_NAME_NEW_DEVICES = "new_devices";
+const OUTPUT_SHEET_NAME_UPDATED_DEVICES = "updated_devices";
+const OUTPUT_SHEET_NAME_JOSYS_MEMBERS = "josys_members";
+const OUTPUT_SHEET_NAME_JOSYS_DEVICES = "josys_devices";
+const OUTPUT_SHEET_NAME_JAMF_DEVICES = "jamf_devices";
+const OUTPUT_SHEET_NAME_FREEE_EMPLOYEES = "freee_members";
+const OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES = "hrbrain_members";
+const OUTPUT_SHEET_NAME_CHROMEBOOK_DEVICES = "chromeos_devices";
+const DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS = "Chromebook";
+const DEVICE_SOURCE_NAME_KEY_JAMF = "Jamf";
+const MEMBER_SOURCE_NAME_KEY_HRBRAIN = "HRBrain";
+const MEMBER_SOURCE_NAME_KEY_FREEE = "freee";
 const DEVICE_CONFIG_SHEET_NAME = "デバイス同期設定";
-const FREEE_EMPLOYEES_OUTPUT_SHEET_NAME = "freee_members";
-const errorOutputCell = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("C1");
+const ERROR_OUTPUT_CELL = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("C1");
+const DEVICE_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("F2").getValue();
+const MEMBER_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("I2").getValue();
 
-function mainFuncForMembers() {
+function mainFuncForMembers(memberSource) {
+  if (memberSource === "") {
+    memberSource = MEMBER_SOURCE_NAME;
+  }
   try {
+    switch (memberSource) {
+      case MEMBER_SOURCE_NAME_KEY_HRBRAIN:
+        getHRBrainMembers();
+        break;
+      case MEMBER_SOURCE_NAME_KEY_FREEE:
+        getFreeeMembers();
+        break;
+      default:
+        ERROR_OUTPUT_CELL.setValue(`対応していないメンバーソースの値です。"${MEMBER_SOURCE_NAME_KEY_FREEE}"か"${MEMBER_SOURCE_NAME_KEY_HRBRAIN}"と入力してください`  + ": 日時 " + new Date().toString());
+        return;
+    }
     getJosysMembers();
-    getFreeeMembers();
+    syncMembersToJosys();
   } catch (error) {
     console.error(error);
-    errorOutputCell.setValue(error  + ": 日時 " + new Date().toString());
+    ERROR_OUTPUT_CELL.setValue(error  + ": 日時 " + new Date().toString());
   }
-  syncMembersToJosys();
 }
 
-function mainFuncForDevices() {
+function mainFuncForDevices(deviceSource) {
+  if (deviceSource === "") {
+    deviceSource = DEVICE_SOURCE_NAME;
+  }
   try {
+    switch (deviceSource) {
+      case DEVICE_SOURCE_NAME_KEY_JAMF:
+        getJamfDevices();
+        break;
+      case DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS:
+        getChromeOSDevices();
+        break;
+      default:
+        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS}"と入力してください`  + ": 日時 " + new Date().toString());
+        return;
+    }
     getJosysDevices();
-    getJamfDevices();
+    syncDevicesToJosys();
   } catch (error) {
     console.error(error);
-    errorOutputCell.setValue(error  + ": 日時 " + new Date().toString());
+    ERROR_OUTPUT_CELL.setValue(error  + ": 日時 " + new Date().toString());
   }
-  syncDevicesToJosys();
 }
 
 function syncMembersToJosys() {
@@ -43,7 +89,7 @@ function syncMembersToJosys() {
     }
   } catch (error) {
     console.error(error);
-    errorOutputCell.setValue(error  + ": 日時 " + new Date().toString());
+    ERROR_OUTPUT_CELL.setValue(error  + ": 日時 " + new Date().toString());
   }
 }
 
@@ -58,38 +104,54 @@ function syncDevicesToJosys() {
     }
   } catch (error) {
     console.error(error);
-    errorOutputCell.setValue(error  + ": 日時 " + new Date().toString());
+    ERROR_OUTPUT_CELL.setValue(error  + ": 日時 " + new Date().toString());
   }
 }
 
 function getJosysMembers(target_sheet="") {
   if (target_sheet === "") {
-    target_sheet = JOSYS_MEMBERS_OUTPUT_SHEET_NAME;
+    target_sheet = OUTPUT_SHEET_NAME_JOSYS_MEMBERS;
   }
   writeJosysMembersToSheet(target_sheet);
 }
 
 function getJosysDevices(target_sheet="") {
   if (target_sheet === "") {
-    target_sheet = JOSYS_DEVICES_OUTPUT_SHEET_NAME;
+    target_sheet = OUTPUT_SHEET_NAME_JOSYS_DEVICES;
   }
   writeJosysDevicesToSheet(target_sheet);
 }
 
 function getFreeeMembers(target_sheet="") {
   if (target_sheet === "") {
-    target_sheet = FREEE_EMPLOYEES_OUTPUT_SHEET_NAME;
+    target_sheet = OUTPUT_SHEET_NAME_FREEE_EMPLOYEES;
   }
   writeFreeeMembersToSheet(target_sheet);
 }
 
+function getHRBrainMembers(target_sheet="") {
+  if (target_sheet === "") {
+    target_sheet = OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES;
+  }
+  writeHrbrainMembersToSheet(target_sheet);
+}
+
 function writeMemberDiffsToSheet(sourceSheet="", josysSheet="") {
   if (sourceSheet === "") {
-    sourceSheet = FREEE_EMPLOYEES_OUTPUT_SHEET_NAME;
+    switch (MEMBER_SOURCE_NAME) {
+      case MEMBER_SOURCE_NAME_KEY_FREEE:
+        sourceSheet = OUTPUT_SHEET_NAME_FREEE_EMPLOYEES;
+        break;
+      case MEMBER_SOURCE_NAME_KEY_HRBRAIN:
+        sourceSheet = OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES;
+        break;
+      default:
+        ERROR_OUTPUT_CELL.setValue(`対応していないメンバーソースの値です。"${MEMBER_SOURCE_NAME_KEY_FREEE}"か"${MEMBER_SOURCE_NAME_KEY_HRBRAIN}"と入力してください`  + ": 日時 " + new Date().toString());
+        break;
+    }
   }
-
   if (josysSheet === "") {
-    josysSheet = JOSYS_MEMBERS_OUTPUT_SHEET_NAME;
+    josysSheet = OUTPUT_SHEET_NAME_JOSYS_MEMBERS;
   }
 
   const sourceMembers = createObjectArrayFromSheet(sourceSheet);
@@ -97,25 +159,35 @@ function writeMemberDiffsToSheet(sourceSheet="", josysSheet="") {
 
   const [employeesToAdd, employeesToUpdate] = ComputeDiffs.computeDiff(sourceMembers, josysMembers);
 
-  Utils.clearSheet(NEW_EMPLOYEES_OUTPUT_SHEET_NAME);
-  Utils.clearSheet(UPDATED_EMPLOYEES_OUTPUT_SHEET_NAME);
+  Utils.clearSheet(OUTPUT_SHEET_NAME_NEW_EMPLOYEES);
+  Utils.clearSheet(OUTPUT_SHEET_NAME_UPDATED_EMPLOYEES);
 
   if (employeesToAdd.length > 0) {
-    Utils.writeObjectArrayToSheet(employeesToAdd, NEW_EMPLOYEES_OUTPUT_SHEET_NAME, 1, 1, true);
+    Utils.writeObjectArrayToSheet(employeesToAdd, OUTPUT_SHEET_NAME_NEW_EMPLOYEES, 1, 1, true);
   }
   if (employeesToUpdate.length > 0) {
-    Utils.writeObjectArrayToSheet(employeesToUpdate, UPDATED_EMPLOYEES_OUTPUT_SHEET_NAME, 1, 1, true);
+    Utils.writeObjectArrayToSheet(employeesToUpdate, OUTPUT_SHEET_NAME_UPDATED_EMPLOYEES, 1, 1, true);
   }
   return [employeesToAdd, employeesToUpdate];
 }
 
 function writeDeviceDiffsToSheet(sourceSheet="", josysSheet="") {
   if (sourceSheet === "") {
-    sourceSheet = JAMF_DEVICES_OUTPUT_SHEET_NAME;
+    switch (DEVICE_SOURCE_NAME) {
+      case DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS:
+        sourceSheet = OUTPUT_SHEET_NAME_CHROMEBOOK_DEVICES;
+        break;
+      case DEVICE_SOURCE_NAME_KEY_JAMF:
+        sourceSheet = OUTPUT_SHEET_NAME_JAMF_DEVICES;
+        break;
+      default:
+        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS}"と入力してください`  + ": 日時 " + new Date().toString());
+        break;
+    }
   }
 
   if (josysSheet === "") {
-    josysSheet = JOSYS_DEVICES_OUTPUT_SHEET_NAME;
+    josysSheet = OUTPUT_SHEET_NAME_JOSYS_DEVICES;
   }
 
   const sourceDevices = createObjectArrayFromSheet(sourceSheet);
@@ -123,21 +195,21 @@ function writeDeviceDiffsToSheet(sourceSheet="", josysSheet="") {
 
   const [devicesToAdd, devicesToUpdate] = ComputeDeviceDiffs.computeDeviceDiff(sourceDevices, josysDevices);
 
-  Utils.clearSheet(NEW_DEVICES_OUTPUT_SHEET_NAME);
-  Utils.clearSheet(UPDATED_DEVICES_OUTPUT_SHEET_NAME);
+  Utils.clearSheet(OUTPUT_SHEET_NAME_NEW_DEVICES);
+  Utils.clearSheet(OUTPUT_SHEET_NAME_UPDATED_DEVICES);
 
   if (devicesToAdd.length > 0) {
-    Utils.writeObjectArrayToSheet(devicesToAdd, NEW_DEVICES_OUTPUT_SHEET_NAME, 1, 1, true);
+    Utils.writeObjectArrayToSheet(devicesToAdd, OUTPUT_SHEET_NAME_NEW_DEVICES, 1, 1, true);
   }
   if (devicesToUpdate.length > 0) {
-    Utils.writeObjectArrayToSheet(devicesToUpdate, UPDATED_DEVICES_OUTPUT_SHEET_NAME, 1, 1, true);
+    Utils.writeObjectArrayToSheet(devicesToUpdate, OUTPUT_SHEET_NAME_UPDATED_DEVICES, 1, 1, true);
   }
 
   return [devicesToAdd, devicesToUpdate];
 }
 
 function postNewDevicesToJosys(devicesToAdd) {
-  const lastRange = getLastRange(NEW_DEVICES_OUTPUT_SHEET_NAME, devicesToAdd.length);
+  const lastRange = getLastRange(OUTPUT_SHEET_NAME_NEW_DEVICES, devicesToAdd.length);
   let results = uploadDevices(devicesToAdd);
   lastRange.setValues(results.map(function (item) {
     return [item]; // Wrap each item in an array
@@ -145,7 +217,7 @@ function postNewDevicesToJosys(devicesToAdd) {
 }
 
 function updateDevicesOnJosys(devicesToUpdate) {
-  const lastRange = getLastRange(UPDATED_DEVICES_OUTPUT_SHEET_NAME, devicesToUpdate.length);
+  const lastRange = getLastRange(OUTPUT_SHEET_NAME_UPDATED_DEVICES, devicesToUpdate.length);
   let results = updateDevices(devicesToUpdate);
   lastRange.setValues(results.map(function (item) {
     return [item]; // Wrap each item in an array
@@ -153,7 +225,7 @@ function updateDevicesOnJosys(devicesToUpdate) {
 }
 
 function postNewMembersToJosys(employeesToAdd) {
-    const lastRange = getLastRange(NEW_EMPLOYEES_OUTPUT_SHEET_NAME, employeesToAdd.length);
+    const lastRange = getLastRange(OUTPUT_SHEET_NAME_NEW_EMPLOYEES, employeesToAdd.length);
     let results = uploadMembers(employeesToAdd);
     lastRange.setValues(results.map(function (item) {
       return [item]; // Wrap each item in an array
@@ -161,7 +233,7 @@ function postNewMembersToJosys(employeesToAdd) {
 }
 
 function updateMembersOnJosys(employeesToUpdate) {
-  const lastRange = getLastRange(UPDATED_EMPLOYEES_OUTPUT_SHEET_NAME, employeesToUpdate.length);
+  const lastRange = getLastRange(OUTPUT_SHEET_NAME_UPDATED_EMPLOYEES, employeesToUpdate.length);
   let results = updateMembers(employeesToUpdate);
   lastRange.setValues(results.map(function (item) {
     return [item]; // Wrap each item in an array
@@ -170,9 +242,16 @@ function updateMembersOnJosys(employeesToUpdate) {
 
 function getJamfDevices(target_sheet="") {
   if (target_sheet === "") {
-    target_sheet = JAMF_DEVICES_OUTPUT_SHEET_NAME;
+    target_sheet = OUTPUT_SHEET_NAME_JAMF_DEVICES;
   }
   writeJamfDevicesToSheet(target_sheet);
+}
+
+function getChromeOSDevices(target_sheet="") {
+  if (target_sheet === "") {
+    target_sheet = OUTPUT_SHEET_NAME_CHROMEBOOK_DEVICES;
+  }
+  writeChromebooksToSheet(target_sheet);
 }
 
 function getLastRange(sheetName, length) {

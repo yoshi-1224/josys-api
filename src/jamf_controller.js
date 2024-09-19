@@ -1,9 +1,9 @@
 function getJamfCredentials() {
   const worksheet = SpreadsheetApp.getActiveSpreadsheet();
   const authSheet = worksheet.getSheetByName(MAIN_SHEET_NAME);
-  const serverDomain = authSheet.getRange("F6").getValue();
-  const loginId = authSheet.getRange("F7").getValue();
-  const password = authSheet.getRange("F8").getValue();
+  const serverDomain = authSheet.getRange(CREDENTIALS_JAMF_SERVER_DOMAIN).getValue();
+  const loginId = authSheet.getRange(CREDENTIALS_JAMF_LOGIN_ID).getValue();
+  const password = authSheet.getRange(CREDENTIALS_JAMF_PASSWORD).getValue();
   return [serverDomain, loginId, password];
 }
 

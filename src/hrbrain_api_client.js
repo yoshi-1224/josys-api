@@ -1,8 +1,8 @@
 class HrbrainApiClient {
-  constructor(clientId, clientSecret) {
-    this.baseUrl = `https://${clientId}.oapi.hrbrain.jp`;
-    this.clientId = clientId;
-    this.clientSecret = clientSecret;
+  constructor(serverDomain, clientSecret) {
+    this.baseUrl = `https://${serverDomain}.oapi.hrbrain.jp`;
+    this.serverDomain = serverDomain;
+    this.token = clientSecret;
     this.accessToken = null;
     this.columnsToFetch = {
       "columns": ["EmploymentStatus", "LastName", "FirstName", "Email", "Job", "EmployeeNumber", "MainTeam", "EnrollmentStatus","EnteredDay", "EmploymentStatus", "193b946d-60be-49b8-9940-d9d2a5983ad5"] // aliasか、id
@@ -19,8 +19,8 @@ class HrbrainApiClient {
       'contentType': 'application/json',
       'headers': {'accept' : 'application/json'},
       'payload': JSON.stringify({
-        "clientId": this.clientId,
-        "clientSecret": this.clientSecret
+        "clientId": this.serverDomain,
+        "clientSecret": this.token
       })
     };
 
@@ -126,6 +126,12 @@ class HrbrainApiClient {
 
     getMemberColumns() {
       const endpoint = "/members/v1/fields";
+      const result = this._makeApiRequest(endpoint).content;
+      return result;
+    }
+
+    getItemsInOrganizationPulldown(id) {
+      const endpoint = `/members/v1.1/organization/${id}/items`;
       const result = this._makeApiRequest(endpoint).content;
       return result;
     }

@@ -10,6 +10,7 @@ function onOpen(){
       .addSubMenu(SpreadsheetApp.getUi().createMenu('ステップごとに実行')
         .addItem('ジョーシス: メンバー取得', 'getJosysMembers')
         .addItem('freee: 従業員取得', 'getFreeeMembers')
+        .addItem('HRBrain: 従業員取得', 'getHRBrainMembers')
         .addItem('比較算出', 'writeMemberDiffsToSheet')
         .addItem('比較算出 + 同期', 'syncMembersToJosys'))
       .addSeparator()
@@ -17,6 +18,7 @@ function onOpen(){
       .addSubMenu(SpreadsheetApp.getUi().createMenu('ステップごとに実行')
         .addItem('ジョーシス: デバイス取得', 'getJosysDevices')
         .addItem('Jamf: デバイス取得', 'getJamfDevices')
+        .addItem('Chromebook: デバイス取得', 'getChromeOSDevices')
         .addItem('比較算出', 'writeDeviceDiffsToSheet')
         .addItem('比較算出 + 同期', 'syncDevicesToJosys'))
       .addToUi();
@@ -24,5 +26,5 @@ function onOpen(){
 
 function getCallbackURL() {
   const scriptId = ScriptApp.getScriptId();
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("C16").setValue(`https://script.google.com/macros/d/${scriptId}/usercallback`);
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange(CREDENTIALS_FREEE_SCRIPT_ID).setValue(`https://script.google.com/macros/d/${scriptId}/usercallback`);
 }
