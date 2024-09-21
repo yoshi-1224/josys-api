@@ -1,12 +1,10 @@
 class HrbrainApiClient {
-  constructor(serverDomain, clientSecret) {
+  constructor(serverDomain, clientSecret, columnLabelsToFetch=[]) {
     this.baseUrl = `https://${serverDomain}.oapi.hrbrain.jp`;
     this.serverDomain = serverDomain;
     this.token = clientSecret;
     this.accessToken = null;
-    this.columnsToFetch = {
-      "columns": ["EmploymentStatus", "LastName", "FirstName", "Email", "Job", "EmployeeNumber", "MainTeam", "EnrollmentStatus","EnteredDay", "EmploymentStatus", "193b946d-60be-49b8-9940-d9d2a5983ad5"] // aliasか、id
-    };
+    this.columnsToFetch = columnLabelsToFetch;
   }
 
   _getAccessToken(forceRefresh=false) {
@@ -30,27 +28,102 @@ class HrbrainApiClient {
   }
 
   getAllMembers() {
-    let endpoint = "/members/v1/members";
-    endpoint = this._buildUrl(endpoint, this.columnsToFetch);
-    let results = this._paginateThrough(endpoint, 100, "get");
+    let columns = this.getMemberColumns();
+    const columnIdsToFetch = columns
+      .filter(column => this.columnsToFetch.includes(column.label))
+      .map(column => column.id);
 
-    if (!results) {
+    let endpoint = "/members/v1/members";
+    endpoint = this._buildUrl(endpoint, { columns:columnIdsToFetch });
+    let members = this._paginateThrough(endpoint, 100, "get");
+
+    if (!members) {
       return [];
     }
 
-    results = results.map(member => {
+    columns = columns.reduce((acc, e) => {
+      acc[e.id] = e;
+      return acc;
+    }, {});
+
+    members = members.map(member => {
       const memberFields = member.fields.reduce((acc, field) => {
-        if (field.alias && field.alias !== "") {
-          acc[field.alias] = field.value;
-        } else {
-          acc[field.id] = field.value;
-        }
+          if (field.type !== "organizationPulldown") {
+            acc[columns[field.id].label] = field.value;
+          } else {
+            const organizationId = columns[field.id].organizationId;
+            if (!this._itemsCache) {
+              this._itemsCache = {};
+            }
+            if (!this._itemsCache[organizationId]) {
+              this._itemsCache[organizationId] = this.getItemsInOrganizationPulldown(organizationId);
+            }
+            const [items, type] = this._itemsCache[organizationId];
+            if (type === "list") {
+              acc[columns[field.id].label] = items.find(item => item.id === field.value)?.value;
+            } else if (field.alias === "MainTeam" && field.value && field.value !== "") {
+              console.log(`${columns[field.id].label}: ${items[field.value]}`);
+              acc[columns[field.id].label] = items[field.value];
+            }
+          }
         return acc;
       }, {});
       return { ...memberFields, id: member.id };
     });
 
-    return results;
+    return members;
+  }
+
+  _createIdValueMap(dataArray) {
+    const idValueMap = {};
+  
+    function traverse(node, path) {
+      if (!node) return;
+  
+      // Add current node's value to the path
+      path.push(node.value);
+  
+      // Create the path string
+      const pathString = path.join('>');
+  
+      // Add to the map
+      idValueMap[node.id] = pathString;
+  
+      // Traverse children if any
+      if (node.items) {
+        if (Array.isArray(node.items)) {
+          node.items.forEach(child => traverse(child, path));
+        } else if (typeof node.items === 'object') {
+          traverse(node.items, path);
+        }
+      }
+  
+      // Backtrack: remove current node's value from the path
+      path.pop();
+    }
+  
+    // Since dataArray is an array, we iterate over each root node
+    dataArray.forEach(rootNode => {
+      traverse(rootNode, []);
+    });
+  
+    return idValueMap;
+  }
+
+  getMemberColumns() {
+    const endpoint = "/members/v1/fields";
+    const result = this._makeApiRequest(endpoint).content;
+    return result;
+  }
+
+  getItemsInOrganizationPulldown(id) {
+    const endpoint = `/members/v1.1/organization/${id}/items`;
+    const result = this._makeApiRequest(endpoint).content;
+    if (result.type === "tree") {
+      const list_items = this._createIdValueMap(result.items);
+      result.items = list_items;
+    }
+    return [result.items, result.type];
   }
 
   _buildUrl(url, params) {
@@ -122,17 +195,5 @@ class HrbrainApiClient {
       default:
         throw new Error(`${response.getResponseCode()} : ${response.getContentText()}`);
       }
-    }
-
-    getMemberColumns() {
-      const endpoint = "/members/v1/fields";
-      const result = this._makeApiRequest(endpoint).content;
-      return result;
-    }
-
-    getItemsInOrganizationPulldown(id) {
-      const endpoint = `/members/v1.1/organization/${id}/items`;
-      const result = this._makeApiRequest(endpoint).content;
-      return result;
     }
 }
