@@ -17,18 +17,20 @@ const OUTPUT_SHEET_NAME_NEW_DEVICES = "new_devices";
 const OUTPUT_SHEET_NAME_UPDATED_DEVICES = "updated_devices";
 const OUTPUT_SHEET_NAME_JOSYS_MEMBERS = "josys_members";
 const OUTPUT_SHEET_NAME_JOSYS_DEVICES = "josys_devices";
-const OUTPUT_SHEET_NAME_JAMF_DEVICES = "jamf_devices";
-const OUTPUT_SHEET_NAME_FREEE_EMPLOYEES = "freee_members";
-const OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES = "hrbrain_members";
-const OUTPUT_SHEET_NAME_CHROMEBOOK_DEVICES = "chromeos_devices";
-const DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS = "Chromebook";
-const DEVICE_SOURCE_NAME_KEY_JAMF = "Jamf";
-const MEMBER_SOURCE_NAME_KEY_HRBRAIN = "HRBrain";
+const DEVICE_SOURCE_NAME_KEY_JAMF = "jamf";
+const MEMBER_SOURCE_NAME_KEY_HRBRAIN = "hrbrain";
 const MEMBER_SOURCE_NAME_KEY_FREEE = "freee";
+const DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES = "chromeos";
+const OUTPUT_SHEET_NAME_JAMF_DEVICES = `${DEVICE_SOURCE_NAME_KEY_JAMF}_devices`;
+const OUTPUT_SHEET_NAME_CHROMEOS_DEVICES = `${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}_devices`;
+const OUTPUT_SHEET_NAME_FREEE_EMPLOYEES = `${MEMBER_SOURCE_NAME_KEY_FREEE}_members`;
+const OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES = `${MEMBER_SOURCE_NAME_KEY_HRBRAIN}_members`;
 const DEVICE_CONFIG_SHEET_NAME = "デバイス同期設定";
+const MEMBER_CONFIG_SHEET_NAME = "メンバー同期設定";
 const ERROR_OUTPUT_CELL = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("C1");
 const DEVICE_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("F2").getValue();
-const MEMBER_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("I2").getValue();
+const MEMBER_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MEMBER_CONFIG_SHEET_NAME).getRange("C3").getValue();
+const SYNC_NEW_MEMBERS_FLAG = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MEMBER_CONFIG_SHEET_NAME).getRange("B15").getValue() === "新規メンバーとして同期";
 
 function mainFuncForMembers(memberSource) {
   if (memberSource === "") {
@@ -63,11 +65,11 @@ function mainFuncForDevices(deviceSource) {
       case DEVICE_SOURCE_NAME_KEY_JAMF:
         getJamfDevices();
         break;
-      case DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS:
+      case DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES:
         getChromeOSDevices();
         break;
       default:
-        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS}"と入力してください`  + ": 日時 " + new Date().toString());
+        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}"と入力してください`  + ": 日時 " + new Date().toString());
         return;
     }
     getJosysDevices();
@@ -81,7 +83,7 @@ function mainFuncForDevices(deviceSource) {
 function syncMembersToJosys() {
   try {
     const [employeesToAdd, employeesToUpdate] = writeMemberDiffsToSheet();
-    if (employeesToAdd.length > 0) {
+    if (employeesToAdd.length > 0 && SYNC_NEW_MEMBERS_FLAG) {
       postNewMembersToJosys(employeesToAdd);
     }
     if (employeesToUpdate.length > 0) {
@@ -157,7 +159,7 @@ function writeMemberDiffsToSheet(sourceSheet="", josysSheet="") {
   const sourceMembers = createObjectArrayFromSheet(sourceSheet);
   const josysMembers = createObjectArrayFromSheet(josysSheet);
 
-  const [employeesToAdd, employeesToUpdate] = ComputeDiffs.computeDiff(sourceMembers, josysMembers);
+  const [employeesToAdd, employeesToUpdate] = ComputeMemberDiffs.computeMemberDiff(sourceMembers, josysMembers)
 
   Utils.clearSheet(OUTPUT_SHEET_NAME_NEW_EMPLOYEES);
   Utils.clearSheet(OUTPUT_SHEET_NAME_UPDATED_EMPLOYEES);
@@ -174,14 +176,14 @@ function writeMemberDiffsToSheet(sourceSheet="", josysSheet="") {
 function writeDeviceDiffsToSheet(sourceSheet="", josysSheet="") {
   if (sourceSheet === "") {
     switch (DEVICE_SOURCE_NAME) {
-      case DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS:
-        sourceSheet = OUTPUT_SHEET_NAME_CHROMEBOOK_DEVICES;
+      case DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES:
+        sourceSheet = OUTPUT_SHEET_NAME_CHROMEOS_DEVICES;
         break;
       case DEVICE_SOURCE_NAME_KEY_JAMF:
         sourceSheet = OUTPUT_SHEET_NAME_JAMF_DEVICES;
         break;
       default:
-        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEBOOKS}"と入力してください`  + ": 日時 " + new Date().toString());
+        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}"と入力してください`  + ": 日時 " + new Date().toString());
         break;
     }
   }
@@ -249,9 +251,9 @@ function getJamfDevices(target_sheet="") {
 
 function getChromeOSDevices(target_sheet="") {
   if (target_sheet === "") {
-    target_sheet = OUTPUT_SHEET_NAME_CHROMEBOOK_DEVICES;
+    target_sheet = OUTPUT_SHEET_NAME_CHROMEOS_DEVICES;
   }
-  writeChromebooksToSheet(target_sheet);
+  writeChromeosDevicesToSheet(target_sheet);
 }
 
 function getLastRange(sheetName, length) {

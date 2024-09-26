@@ -118,7 +118,7 @@ class FreeeApiClient {
 
   getGroupMemberships(companyId) {
     var requestUrl = "https://api.freee.co.jp/hr/api/v1/employee_group_memberships";
-    let params = { company_id: companyId, base_date: Utils.formatDateToYYYYMMDD(new Date())};
+    let params = { company_id: companyId, base_date: Utils.formatDateToJosysFormat(new Date())};
     var results = this._paginateThrough(requestUrl, params);
     for (const r of results) {
       Utils.extract_columns(r, ["id", "group_memberships"]);

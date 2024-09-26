@@ -122,7 +122,7 @@ class JamfApiClient {
 
   _convertUTCToLocalTimezone(device, key) {
     if (device[key]) {
-      device[key] = Utils.formatDateToYYYYMMDD(new Date(device[key]));
+      device[key] = Utils.formatDateToJosysFormat(new Date(device[key]));
     }
   }
 }

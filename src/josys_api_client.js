@@ -32,18 +32,6 @@ class JosysApiClient {
     }
   }
 
-  /**
-   * Makes an API request to the specified endpoint using the provided HTTP method and data.
-   * This method automatically handles authorization and content type headers.
-   * It also handles token refresh if the initial request returns a 401 Unauthorized response.
-   * 
-   * @param {string} endpoint - The API endpoint to which the request is made.
-   * @param {string} [method='get'] - The HTTP method to use for the request. Defaults to 'get'.
-   * @param {Object} [postData={}] - The data to be sent with the request. Relevant for methods like 'post'.
-   * @returns {Object|null} - Returns an object containing 'content' and 'headers' if successful,
-   *                          returns null if the response code is 204 or 404.
-   * @throws {Error} - Throws an error if the response code is not 200, 201, 204, or 404.
-   */
   _makeApiRequest(endpoint, method = 'get', postData = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
@@ -94,17 +82,6 @@ class JosysApiClient {
       }
     }
 
-  /**
-   * Paginates through API responses for a given endpoint.
-   * This function handles pagination logic for API requests that return paginated data.
-   * It continues to make requests until all pages have been fetched or until an error occurs.
-   *
-   * @param {string} endpoint - The API endpoint to make requests to.
-   * @param {number} perPage - The number of items per page.
-   * @param {string} [method='get'] - The HTTP method to use for the requests.
-   * @param {Object} [postData={}] - The data to be sent in the case of a POST request.
-   * @returns {Array} An array containing all items from all pages of the API response.
-   */
   _paginateThrough(endpoint, perPage, method='get', postData={}) {
     let page = 1;
     let totalPages = 1;
@@ -134,7 +111,7 @@ class JosysApiClient {
   /**
    * Department endpoints
    **/
-  getAllDepartments(perPage=50) {
+  getAllDepartments(perPage=1000) {
     return this._paginateThrough('/v1/departments', perPage);
   }
 
@@ -156,7 +133,7 @@ class JosysApiClient {
   /**
    * User Profile endpoints
    **/
-  getAllUserProfiles(perPage = 100, returnEnumsInJapanese=true, getDepartments=true) {
+  getAllUserProfiles(perPage = 1000, returnEnumsInJapanese=true, getDepartments=true) {
     const results = this._paginateThrough('/v1/user_profiles', perPage);
 
     if (returnEnumsInJapanese) {
@@ -204,7 +181,7 @@ class JosysApiClient {
     return this._makeApiRequest('/v1/user_profiles', 'post', params).content.data;
   }
 
-  searchUserProfiles(search_params, perPage=100, returnEnumsInJapanese=true, getDepartmentNames=true) {
+  searchUserProfiles(search_params, perPage=500, returnEnumsInJapanese=true, getDepartmentNames=true) {
     let results = this._paginateThrough('/v1/user_profiles/search', perPage, 'post', search_params);
     if (!results) {
       return [];
@@ -421,18 +398,3 @@ const deviceStatusMappingEn2Jp = {
   "DECOMMISSIONED": "廃棄/解約",
   "UNKNOWN": "不明"
 }
-
-// const deviceStatusMappingJp2En = {
-//   "在庫": "AVAILABLE",
-//   "利用中": "IN_USE",
-//   "廃棄/解約": "DECOMMISSIONED",
-//   "不明": "UNKNOWN"
-// }
-
-// const UserProfileKeyType = {
-//   "USER_ID": "user_id",
-//   "EMAIL": "email",
-//   "UUID": "uuid"
-// }
-
-// const deviceDefaultColumns = new Set(["uuid", "asset_number", "device_type", "status", "assignee_name", "assignee_email", "assignee_uuid", "assignee_user_id", "assignment_start_date",	"serial_number", "manufacturer",	"model_number", "model_name",	"source",	"operating_system",	"start_date",	"end_date",	"device_procurement",	"additional_device_information",	"work_location_code",	"departments",	"department_uuids"]);

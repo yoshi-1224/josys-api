@@ -1,5 +1,5 @@
-class ChromebooksClient {
-    getChromebooks() {
+class ChromeosClient {
+    getChromeOsDevices() {
         let pageToken;
         let results = [];
         do {

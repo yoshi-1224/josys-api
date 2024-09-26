@@ -68,7 +68,7 @@ namespace Utils {
       return Array.from(uniqueKeys);
   }
   
-  export const formatDateToYYYYMMDD = (date: Date) => {
+  export const formatDateToJosysFormat = (date: Date) => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1; // getMonth() is zero-based
       const day = date.getDate();
@@ -86,5 +86,6 @@ namespace Utils {
       return;
     }
     sheet.clearContents();
+    sheet.clearFormats();
   }
 }

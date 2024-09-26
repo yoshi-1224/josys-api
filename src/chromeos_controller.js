@@ -1,6 +1,6 @@
-function writeChromebooksToSheet(sheetName, headerRow = 1) {
-    const apiClient = new ChromebooksClient();
-    const results = apiClient.getChromebooks();
+function writeChromeosDevicesToSheet(sheetName, headerRow = 1) {
+    const apiClient = new ChromeosClient();
+    const results = apiClient.getChromeOsDevices();
     if (!results) {
         return;
     }

@@ -49,7 +49,7 @@ class HrbrainApiClient {
     members = members.map(member => {
       const memberFields = member.fields.reduce((acc, field) => {
           if (field.type !== "organizationPulldown") {
-            acc[columns[field.id].label] = field.value;
+              acc[columns[field.id].label] = field.value;
           } else {
             const organizationId = columns[field.id].organizationId;
             if (!this._itemsCache) {
@@ -139,16 +139,16 @@ class HrbrainApiClient {
     let offset = 0;
     let response;
     do {
+      const url = endpoint.includes('?') ? `${endpoint}&limit=${perPage}&offset=${offset}` : `${endpoint}?limit=${perPage}&offset=${offset}`;
       if (method === 'get') {
-        const url = endpoint.includes('?') ? `${endpoint}&page-size=${perPage}&page=${offset++}` : `${endpoint}?page-size=${perPage}&page=${offset++}`;
         response = this._makeApiRequest(url);
       } else if (method === 'post') {
-        const url = endpoint.includes('?') ? `${endpoint}&page-size=${perPage}&page=${offset++}` : `${endpoint}?page-size=${perPage}&page=${offset++}`;
         response = this._makeApiRequest(url, 'post', postData);
       }
       totalCount = response.content.paging.totalCount;
       const members = response.content.data;
       results = [...results, ...members];
+      offset += members.length;
     } while (results.length < totalCount);
     return results;
   }
