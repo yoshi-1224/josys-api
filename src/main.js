@@ -28,9 +28,10 @@ const OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES = `${MEMBER_SOURCE_NAME_KEY_HRBRAIN}_m
 const DEVICE_CONFIG_SHEET_NAME = "デバイス同期設定";
 const MEMBER_CONFIG_SHEET_NAME = "メンバー同期設定";
 const ERROR_OUTPUT_CELL = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("C1");
-const DEVICE_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MAIN_SHEET_NAME).getRange("F2").getValue();
+const DEVICE_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DEVICE_CONFIG_SHEET_NAME).getRange("C3").getValue();
 const MEMBER_SOURCE_NAME = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MEMBER_CONFIG_SHEET_NAME).getRange("C3").getValue();
 const SYNC_NEW_MEMBERS_FLAG = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MEMBER_CONFIG_SHEET_NAME).getRange("B15").getValue() === "新規メンバーとして同期";
+const SYNC_NEW_DEVICES_FLAG = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DEVICE_CONFIG_SHEET_NAME).getRange("B15").getValue() === "新規デバイスとして同期";
 
 function mainFuncForMembers(memberSource) {
   if (memberSource === "") {
@@ -98,7 +99,7 @@ function syncMembersToJosys() {
 function syncDevicesToJosys() {
   try {
     const [devicesToAdd, devicesToUpdate] = writeDeviceDiffsToSheet();
-    if (devicesToAdd.length > 0) {
+    if (devicesToAdd.length > 0 && SYNC_NEW_DEVICES_FLAG) {
       postNewDevicesToJosys(devicesToAdd);
     }
     if (devicesToUpdate.length > 0) {

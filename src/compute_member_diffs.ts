@@ -32,7 +32,7 @@ namespace ComputeMemberDiffs {
         if (!sheet) {
             throw new Error(`Sheet with name ${sheetName} not found`);
         }
-        const lastColumn = getLastColumnNumber(sheet, JOSYS_MEMBER_COLUMNS_ROW_NUM);
+        const lastColumn = ComputeMemberDiffs.getLastColumnNumber(sheet, JOSYS_MEMBER_COLUMNS_ROW_NUM);
         let range = sheet.getRange(JOSYS_MEMBER_COLUMNS_ROW_NUM, START_COL_OF_MEMBER_COLUMNS, 1, lastColumn - START_COL_OF_MEMBER_COLUMNS + 1);
         let josysColumns: string[] = range.getValues().flat();
         range = sheet.getRange(HRMS_MEMBER_COLUMNS_ROW_NUM, START_COL_OF_MEMBER_COLUMNS, 1, lastColumn - START_COL_OF_MEMBER_COLUMNS + 1);

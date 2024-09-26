@@ -1,4 +1,10 @@
 namespace ComputeDeviceDiffs {
+    const JOSYS_DEVICE_COLUMNS_ROW_NUM = 6;
+    const MDM_DEVICE_COLUMNS_ROW_NUM = 7;
+    const START_COL_OF_DEVICE_COLUMNS = 3;
+    const MATCH_KEY_RANGE = "B12";
+    const ASSET_NUMBER_COLUMN_RANGE = "B19";
+
     export const JosysDeviceDefaultColumnJP2EN = {
         "ID": "uuid",
         "資産番号": "asset_number",
@@ -18,24 +24,30 @@ namespace ComputeDeviceDiffs {
     }
 
     export const readColumnMappingsFromSheet = (sheetName: string) => {
+        if (sheetName === "") {
+            sheetName = DEVICE_CONFIG_SHEET_NAME;
+        }
         const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
         if (!sheet) {
             throw new Error(`Sheet with name ${sheetName} not found`);
         }
-        const lastColumn = sheet.getLastColumn();
-        let range = sheet.getRange(4, 3, 1, lastColumn - 2);
+        const lastColumn = ComputeMemberDiffs.getLastColumnNumber(sheet, JOSYS_DEVICE_COLUMNS_ROW_NUM);
+        let range = sheet.getRange(JOSYS_DEVICE_COLUMNS_ROW_NUM, START_COL_OF_DEVICE_COLUMNS, 1, lastColumn - START_COL_OF_DEVICE_COLUMNS + 1);
         let josysColumns: string[] = range.getValues().flat();
-        range = sheet.getRange(5, 3, 1, lastColumn - 2);
+        range = sheet.getRange(MDM_DEVICE_COLUMNS_ROW_NUM, START_COL_OF_DEVICE_COLUMNS, 1, lastColumn - START_COL_OF_DEVICE_COLUMNS + 1);
         let mdmColumns: string[] = range.getValues().flat();
         return [josysColumns, mdmColumns];
     }
 
     export const readMatchKeyFromSheet = (sheetName: string) => {
+        if (sheetName === "") {
+            sheetName = DEVICE_CONFIG_SHEET_NAME;
+        }
         const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
         if (!sheet) {
             throw new Error(`Sheet with name ${sheetName} not found`);
         }
-        return sheet.getRange("B10").getValue();
+        return sheet.getRange(MATCH_KEY_RANGE).getValue();
     }
 
     export const readAssetNumberColumnFromSheet = (sheetName: string) => {
@@ -44,11 +56,11 @@ namespace ComputeDeviceDiffs {
             throw new Error(`Sheet with name ${sheetName} not found`);
         }
 
-        if (sheet.getRange("B14").getValue() === "同期しない") {
+        if (SYNC_NEW_DEVICES_FLAG) {
             return null;
         }
 
-        return sheet.getRange("B17").getValue();
+        return sheet.getRange(ASSET_NUMBER_COLUMN_RANGE).getValue();
     }
 
     export const computeDeviceDiff = (sourceDevices, josysDevices) => {
@@ -59,8 +71,6 @@ namespace ComputeDeviceDiffs {
         if (assetNumberColumn) {
             assetNumberColumnValues = sourceDevices.map(device => device[assetNumberColumn]);
         }
-        ComputeDeviceDiffs.dropColumnsExcept(josysDevices, [...josysColumns, "ID"]);
-        ComputeDeviceDiffs.dropColumnsExcept(sourceDevices, sourceColumns);
         const matchKey = ComputeDeviceDiffs.readMatchKeyFromSheet(DEVICE_CONFIG_SHEET_NAME);
         console.log(`match key = ${matchKey}`);
         const columnMapping = {};
@@ -76,50 +86,44 @@ namespace ComputeDeviceDiffs {
         return [entriesToAdd, entriesToUpdate];
     };
 
-    export const dropColumnsExcept = (objects, keys) => {
-        objects.forEach(obj => {
-            Object.keys(obj).forEach(key => {
-                if (!keys.includes(key)) {
-                    delete obj[key];
-                }
-            });
-        });
-    }
-
-    export const compareAndCategorize = (source: Array<{ [key: string]: any }>, josys: Array<{ [key: string]: any }>, mappings: { [key: string]: string }, matchKey: string, assetNumberColumnValues: string[]) => {
+    export const compareAndCategorize = (sourceDevices: Array<{ [key: string]: any }>, josysDevices: Array<{ [key: string]: any }>, josysCol2SourceCol: { [key: string]: string }, matchKey: string, assetNumberColumnValues: string[]) => {
         let entriesToAdd: Array<{ [key: string]: any }> = [];
         let entriesToUpdate: Array<{ [key: string]: any }> = [];
 
-        const josysDevicesByMatchKey = josys.reduce((acc, obj) => {
+        const josysDevicesByMatchValue = josysDevices.reduce((acc, obj) => {
             acc[obj[matchKey]] = obj;
             return acc;
         }, {});
 
-        const reverseMapping = {};
-        Object.keys(mappings).forEach(key => {
-            reverseMapping[mappings[key]] = key;
+        const sourceCol2JosysCol = {};
+        Object.keys(josysCol2SourceCol).forEach(key => {
+            sourceCol2JosysCol[josysCol2SourceCol[key]] = key;
         });
 
-        const sourceMatchKey = mappings[matchKey];
-        source.forEach((srcObj, index) => {
-            const josysObj = josysDevicesByMatchKey[srcObj[sourceMatchKey]];
-            if (!josysObj) {
+        const sourceMatchKey = josysCol2SourceCol[matchKey];
+        sourceDevices.forEach((srcDevice, index) => {
+            const josysDevice = josysDevicesByMatchValue[srcDevice[sourceMatchKey]];
+            if (!josysDevice) {
                 if (assetNumberColumnValues.length > 0) {
-                    const newObj = {};
-                    Object.keys(srcObj).forEach(key => {
-                        newObj[reverseMapping[key]] = srcObj[key];
+                    const newDevice = {};
+                    Object.keys(josysCol2SourceCol).forEach(josysColumn => {
+                        const sourceColumn = josysCol2SourceCol[josysColumn];
+                        let sourceValue = srcDevice[sourceColumn];
+                        newDevice[josysColumn] = sourceValue;
                     });
-                    entriesToAdd.push({ ...newObj, "資産番号": assetNumberColumnValues[index] });
+                    entriesToAdd.push({ ...newDevice, "資産番号": assetNumberColumnValues[index] });
                 }
             } else {
-                const diffObj = { "ID": josysObj.ID };
+                const diffObj = { "ID": josysDevice.ID };
                 let isDifferent = false;
-                Object.keys(mappings).forEach(key => {
-                    if (josysObj[key] !== srcObj[mappings[key]]) {
-                        // console.log(`${key}: ${josysObj[key]} != ${mappings[key]}:${srcObj[mappings[key]]}`);
-                        diffObj[key] = srcObj[mappings[key]];
+                Object.keys(josysCol2SourceCol).forEach(josysColumn => {
+                    const josysValue = josysDevice[josysColumn];
+                    const sourceColumn = josysCol2SourceCol[josysColumn];
+                    let sourceValue = srcDevice[sourceColumn];
+                    if (sourceValue !== josysValue) {
                         isDifferent = true;
-                    }
+                        diffObj[josysColumn] = sourceValue;
+                    }                    
                 });
                 if (isDifferent) {
                     entriesToUpdate.push(diffObj);
@@ -147,5 +151,16 @@ namespace ComputeDeviceDiffs {
                 obj["custom_fields"] = custom_fields;
             }
         });
+    }
+
+    export const getLastColumnNumber = (sheet, row:number) => {
+        const lastColumn = sheet.getLastColumn();
+        const values = sheet.getRange(row, 1, 1, lastColumn).getValues()[0];
+        for (let col = lastColumn - 1; col >= 0; col--) {
+            if (values[col] !== "") {
+                return col + 1;
+            }
+        }
+        return 0; // If the row is empty, return 0
     }
 }
