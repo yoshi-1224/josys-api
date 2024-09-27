@@ -18,6 +18,7 @@ function onOpen(){
       .addSubMenu(SpreadsheetApp.getUi().createMenu('ステップごとに実行')
         .addItem('ジョーシス: デバイス取得', 'getJosysDevices')
         .addItem('Jamf: デバイス取得', 'getJamfDevices')
+        .addItem('Lanscope: デバイス取得', 'getLanscopeDevices')
         .addItem('ChromeOSデバイス: デバイス取得', 'getChromeOSDevices')
         .addItem('比較算出', 'writeDeviceDiffsToSheet')
         .addItem('比較算出 + 同期', 'syncDevicesToJosys'))

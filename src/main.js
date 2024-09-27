@@ -11,17 +11,20 @@ const CREDENTIALS_FREEE_COMPANY_NAME = "I8";
 const CREDENTIALS_FREEE_COMPANY_ID = "I9";
 const CREDENTIALS_JOSYS_USER_KEY = "C5";
 const CREDENTIALS_JOSYS_USER_SECRET = "C6";
+const CREDENTIALS_LANSCOPE_TOKEN = "F14";
 const OUTPUT_SHEET_NAME_NEW_EMPLOYEES = "new_employees";
 const OUTPUT_SHEET_NAME_UPDATED_EMPLOYEES = "updated_employees";
 const OUTPUT_SHEET_NAME_NEW_DEVICES = "new_devices";
 const OUTPUT_SHEET_NAME_UPDATED_DEVICES = "updated_devices";
 const OUTPUT_SHEET_NAME_JOSYS_MEMBERS = "josys_members";
 const OUTPUT_SHEET_NAME_JOSYS_DEVICES = "josys_devices";
+const DEVICE_SOURCE_NAME_KEY_LANSCOPE = "lanscope";
 const DEVICE_SOURCE_NAME_KEY_JAMF = "jamf";
 const MEMBER_SOURCE_NAME_KEY_HRBRAIN = "hrbrain";
 const MEMBER_SOURCE_NAME_KEY_FREEE = "freee";
 const DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES = "chromeos";
 const OUTPUT_SHEET_NAME_JAMF_DEVICES = `${DEVICE_SOURCE_NAME_KEY_JAMF}_devices`;
+const OUTPUT_SHEET_NAME_LANSCOPE_DEVICES = `${DEVICE_SOURCE_NAME_KEY_LANSCOPE}_devices`;
 const OUTPUT_SHEET_NAME_CHROMEOS_DEVICES = `${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}_devices`;
 const OUTPUT_SHEET_NAME_FREEE_EMPLOYEES = `${MEMBER_SOURCE_NAME_KEY_FREEE}_members`;
 const OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES = `${MEMBER_SOURCE_NAME_KEY_HRBRAIN}_members`;
@@ -69,8 +72,11 @@ function mainFuncForDevices(deviceSource) {
       case DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES:
         getChromeOSDevices();
         break;
+      case DEVICE_SOURCE_NAME_KEY_LANSCOPE:
+        getLanscopeDevices();
+        break;
       default:
-        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}"と入力してください`  + ": 日時 " + new Date().toString());
+        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}", "${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}", "${DEVICE_SOURCE_NAME_KEY_LANSCOPE}"と入力してください`  + ": 日時 " + new Date().toString());
         return;
     }
     getJosysDevices();
@@ -183,8 +189,11 @@ function writeDeviceDiffsToSheet(sourceSheet="", josysSheet="") {
       case DEVICE_SOURCE_NAME_KEY_JAMF:
         sourceSheet = OUTPUT_SHEET_NAME_JAMF_DEVICES;
         break;
+      case DEVICE_SOURCE_NAME_KEY_LANSCOPE:
+        sourceSheet = OUTPUT_SHEET_NAME_LANSCOPE_DEVICES;
+        break;
       default:
-        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}"か"${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}"と入力してください`  + ": 日時 " + new Date().toString());
+        ERROR_OUTPUT_CELL.setValue(`対応していないデバイスソースの値です。"${DEVICE_SOURCE_NAME_KEY_JAMF}", "${DEVICE_SOURCE_NAME_KEY_CHROMEOS_DEVICES}", "${DEVICE_SOURCE_NAME_KEY_LANSCOPE}"と入力してください`  + ": 日時 " + new Date().toString());
         break;
     }
   }
@@ -248,6 +257,13 @@ function getJamfDevices(target_sheet="") {
     target_sheet = OUTPUT_SHEET_NAME_JAMF_DEVICES;
   }
   writeJamfDevicesToSheet(target_sheet);
+}
+
+function getLanscopeDevices(target_sheet="") {
+  if (target_sheet === "") {
+    target_sheet = OUTPUT_SHEET_NAME_LANSCOPE_DEVICES;
+  }
+  writeLanscopeDevicesToSheet(target_sheet);
 }
 
 function getChromeOSDevices(target_sheet="") {
