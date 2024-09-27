@@ -283,9 +283,13 @@ function createObjectArrayFromSheet(sheetName) {
   if (!sheet) {
       return;
   }
-  const startRow = 2;
-  let sheetData = sheet.getRange(startRow, 1, sheet.getLastRow() - startRow + 1, Utils.getLastColumnNumber(sheet, startRow)).getDisplayValues();
-  let columns = sheetData.shift();
+  const columnRowNum = 2;
+  const dataStartRow = columnRowNum + 1;
+  const columns = Utils.getColumnsFromSheet(sheetName, columnRowNum);
+  const lastRowNum = Utils.getMaxRowNumAtIDColumn(sheetName, columns);
+  console.log(lastRowNum);
+  let sheetData = sheet.getRange(dataStartRow, 1, lastRowNum - dataStartRow + 1, columns.length).getDisplayValues();
+  
   data = Utils.createObjectArrayFrom2dArray(columns, sheetData);
   return data;
 }

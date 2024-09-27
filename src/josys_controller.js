@@ -132,8 +132,8 @@ function updateDevices(devices) {
 
 function synchronizeDepartments(sourceDepartments) {
   try {
-    const currentDepartments = apiClient.getAllDepartments();
-    var josysDeptMap = buildSystemBDeptPaths(currentDepartments);
+    const currentDepartments = getJosysApiClient().getAllDepartments();
+    var josysDeptMap = buildJosysDepartmentPaths(currentDepartments);
     var sourceDeptHierarchy = buildDeptHierarchy(sourceDepartments);
     createDepartmentsRecursively(sourceDeptHierarchy, josysDeptMap, apiClient);
   } catch (error) {
@@ -142,15 +142,15 @@ function synchronizeDepartments(sourceDepartments) {
   return josysDeptMap;
 }
 
-function buildSystemBDeptPaths(systemBDepartments) {
+function buildJosysDepartmentPaths(josysDepartments) {
   var deptMapByUUID = {};
   var deptPaths = {};
 
-  systemBDepartments.forEach(function(dept) {
+  josysDepartments.forEach(function(dept) {
     deptMapByUUID[dept.uuid] = dept;
   });
 
-  systemBDepartments.forEach(function(dept) {
+  josysDepartments.forEach(function(dept) {
     var path = [];
     var currentDept = dept;
     while (currentDept) {

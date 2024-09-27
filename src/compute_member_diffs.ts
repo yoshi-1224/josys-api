@@ -180,7 +180,6 @@ namespace ComputeMemberDiffs {
         const josysMembersByMatchKeyValue = josysMembers.reduce((acc, obj) => {
             if (obj[josysMatchKey] && obj[josysMatchKey] !== "") {
                 acc[obj[josysMatchKey]] = obj;
-                console.log(obj[josysMatchKey]);
             }
             return acc;
         }, {});

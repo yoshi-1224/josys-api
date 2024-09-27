@@ -100,4 +100,27 @@ namespace Utils {
     sheet.clearContents();
     sheet.clearFormats();
   }
+
+  export const getMaxRowNumAtIDColumn = (sheetName: string, columns: string[]) => {
+    let idColumnIndex = columns.indexOf("ID");
+    if (idColumnIndex === -1) {
+      throw new Error(`ID column does not exist`);
+    }
+    idColumnIndex += 1;
+    let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)!;
+    if (!sheet) {
+      return;
+    }
+    var lastRow = sheet.getLastRow();
+    var range = sheet.getRange(1, idColumnIndex, lastRow, 1);
+    var values = range.getValues();
+    var columnLength = 0;
+    for (var rowIndex = 0; rowIndex < values.length; rowIndex++) {
+      if (values[rowIndex][0] !== "") {
+        columnLength = rowIndex + 1; // 1-based indexing (GAS uses 0-based for arrays)
+      }
+    }
+    return columnLength;
+  }
+
 }

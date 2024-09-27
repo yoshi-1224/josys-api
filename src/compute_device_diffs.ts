@@ -31,7 +31,7 @@ namespace ComputeDeviceDiffs {
         if (!sheet) {
             throw new Error(`Sheet with name ${sheetName} not found`);
         }
-        const lastColumn = ComputeMemberDiffs.getLastColumnNumber(sheet, JOSYS_DEVICE_COLUMNS_ROW_NUM);
+        const lastColumn = ComputeDeviceDiffs.getLastColumnNumber(sheet, JOSYS_DEVICE_COLUMNS_ROW_NUM);
         let range = sheet.getRange(JOSYS_DEVICE_COLUMNS_ROW_NUM, START_COL_OF_DEVICE_COLUMNS, 1, lastColumn - START_COL_OF_DEVICE_COLUMNS + 1);
         let josysColumns: string[] = range.getValues().flat();
         range = sheet.getRange(MDM_DEVICE_COLUMNS_ROW_NUM, START_COL_OF_DEVICE_COLUMNS, 1, lastColumn - START_COL_OF_DEVICE_COLUMNS + 1);

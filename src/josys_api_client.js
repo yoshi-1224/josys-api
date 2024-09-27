@@ -221,12 +221,12 @@ class JosysApiClient {
 
     function getFullPath(uuid, path = []) {
       const dept = departmentMap[uuid];
-      if (!dept) return path.join(' > '); // Return the constructed path if no more parents
+      if (!dept) return path.join('>'); // Return the constructed path if no more parents
       path.unshift(dept.name); // Add current department name at the beginning of the path
       if (dept.parent_department_uuid) {
         return getFullPath(dept.parent_department_uuid, path); // Recurse if there's a parent
       }
-      return path.join(' > '); // Base case: no parent
+      return path.join('>'); // Base case: no parent
     }
 
     const fullPathDictionary = {};
