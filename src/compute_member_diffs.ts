@@ -4,8 +4,8 @@ namespace ComputeMemberDiffs {
     const START_COL_OF_MEMBER_COLUMNS = 3;
     const JOSYS_MEMBER_MATCH_KEY_ROW_NUM = 11;
     const HRMS_MEMBER_MATCH_KEY_ROW_NUM = 12;
-    const COL_VAL_MATCHING_START_ROW = 19;
-    const COL_VAL_MATCHING_START_COL = 2;
+    // const COL_VAL_MATCHING_START_ROW = 19;
+    // const COL_VAL_MATCHING_START_COL = 2;
 
     export const JP2ENMapping = {
         "ID": "uuid",
@@ -59,31 +59,31 @@ namespace ComputeMemberDiffs {
         return [josysMatchKey, hrmsMatchKey];
     }
 
-    export const readColumnValueMappingsFromSheet = (sheetName: string = "") => {
-        if (sheetName === "") {
-            sheetName = MEMBER_CONFIG_SHEET_NAME;
-        }
-        const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
-        if (!sheet) {
-            throw new Error(`Sheet with name ${sheetName} not found`);
-        }
-        let range = sheet.getRange(COL_VAL_MATCHING_START_ROW, COL_VAL_MATCHING_START_COL, sheet.getLastRow() - COL_VAL_MATCHING_START_ROW + 1, 3);
-        const columnValueMapping = {};
-        const values = range.getValues();
-        values.forEach(row => {
-            const key = row[0];
-            const hrms_value = row[1];
-            const josys_value = row[2];
-            if (columnValueMapping[key]) {
-                columnValueMapping[key][hrms_value] = josys_value;
-            } else {
-                const mapping = {};
-                mapping[hrms_value] = josys_value;
-                columnValueMapping[key] = mapping;
-            }
-        });
-        return columnValueMapping;
-    }
+    // export const readColumnValueMappingsFromSheet = (sheetName: string = "") => {
+    //     if (sheetName === "") {
+    //         sheetName = MEMBER_CONFIG_SHEET_NAME;
+    //     }
+    //     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    //     if (!sheet) {
+    //         throw new Error(`Sheet with name ${sheetName} not found`);
+    //     }
+    //     let range = sheet.getRange(COL_VAL_MATCHING_START_ROW, COL_VAL_MATCHING_START_COL, sheet.getLastRow() - COL_VAL_MATCHING_START_ROW + 1, 3);
+    //     const columnValueMapping = {};
+    //     const values = range.getValues();
+    //     values.forEach(row => {
+    //         const key = row[0];
+    //         const hrms_value = row[1];
+    //         const josys_value = row[2];
+    //         if (columnValueMapping[key]) {
+    //             columnValueMapping[key][hrms_value] = josys_value;
+    //         } else {
+    //             const mapping = {};
+    //             mapping[hrms_value] = josys_value;
+    //             columnValueMapping[key] = mapping;
+    //         }
+    //     });
+    //     return columnValueMapping;
+    // }
 
     export const computeMemberDiff = (sourceMembers, josysMembers) => {
         const [josysColumns, sourceColumns] = ComputeMemberDiffs.readColumnMappingsFromSheet(MEMBER_CONFIG_SHEET_NAME);
@@ -95,9 +95,9 @@ namespace ComputeMemberDiffs {
             josysCol2SourceCol[josysColumns[i]] = sourceColumns[i];
         }
         console.log(josysCol2SourceCol);
-        const colValueMappings =  ComputeMemberDiffs.readColumnValueMappingsFromSheet(MEMBER_CONFIG_SHEET_NAME);
-        console.log(JSON.stringify(colValueMappings));
-        let [membersToAdd, membersToUpdate] = ComputeMemberDiffs.compareAndCategorize(sourceMembers, josysMembers, josysCol2SourceCol, colValueMappings, hrmsMatchKey, josysMatchKey);
+        // const colValueMappings =  ComputeMemberDiffs.readColumnValueMappingsFromSheet(MEMBER_CONFIG_SHEET_NAME);
+        // console.log(JSON.stringify(colValueMappings));
+        let [membersToAdd, membersToUpdate] = ComputeMemberDiffs.compareAndCategorize(sourceMembers, josysMembers, josysCol2SourceCol, hrmsMatchKey, josysMatchKey);
         membersToAdd = ComputeMemberDiffs.validateNewMembers(membersToAdd);
         membersToAdd = ComputeMemberDiffs.dropEmptyColumns(membersToAdd);
         membersToUpdate = ComputeMemberDiffs.validateUpdatedMembers(membersToUpdate);
@@ -173,12 +173,15 @@ namespace ComputeMemberDiffs {
         return true;
     }
 
-    export const compareAndCategorize = (sourceMembers: Array<{ [key: string]: any }>, josysMembers: Array<{ [key: string]: any }>, josysCol2SourceCol: { [key: string]: string }, colValueMappings: { [key: string]: []}, hrmsMatchKey:string, josysMatchKey: string) => {
+    export const compareAndCategorize = (sourceMembers: Array<{ [key: string]: any }>, josysMembers: Array<{ [key: string]: any }>, josysCol2SourceCol: { [key: string]: string }, hrmsMatchKey:string, josysMatchKey: string) => {
         let entriesToAdd: Array<{ [key: string]: any }> = [];
         let entriesToUpdate: Array<{ [key: string]: any }> = [];
 
         const josysMembersByMatchKeyValue = josysMembers.reduce((acc, obj) => {
-            acc[obj[josysMatchKey]] = obj;
+            if (obj[josysMatchKey] && obj[josysMatchKey] !== "") {
+                acc[obj[josysMatchKey]] = obj;
+                console.log(obj[josysMatchKey]);
+            }
             return acc;
         }, {});
 
@@ -194,9 +197,9 @@ namespace ComputeMemberDiffs {
                     Object.keys(josysCol2SourceCol).forEach(josysColumn => {
                         const sourceColumn = josysCol2SourceCol[josysColumn];
                         let sourceValue = srcObj[sourceColumn];
-                        if (colValueMappings[josysColumn] && colValueMappings[josysColumn][sourceValue]) {
-                            sourceValue = colValueMappings[josysColumn][sourceValue];
-                        }
+                        // if (colValueMappings[josysColumn] && colValueMappings[josysColumn][sourceValue]) {
+                        //     sourceValue = colValueMappings[josysColumn][sourceValue];
+                        // }
                         newMember[josysColumn] = sourceValue;
                     });
                     entriesToAdd.push(newMember);
@@ -207,9 +210,9 @@ namespace ComputeMemberDiffs {
                     const josysValue = josysObj[josysColumn];
                     const sourceColumn = josysCol2SourceCol[josysColumn];
                     let sourceValue = srcObj[sourceColumn];
-                    if (colValueMappings[josysColumn] && colValueMappings[josysColumn][sourceValue]) {
-                        sourceValue = colValueMappings[josysColumn][sourceValue];
-                    }
+                    // if (colValueMappings[josysColumn] && colValueMappings[josysColumn][sourceValue]) {
+                    //     sourceValue = colValueMappings[josysColumn][sourceValue];
+                    // }
                     if (sourceValue !== josysValue) {
                         isDifferent = true;
                         diffObj[josysColumn] = sourceValue;

@@ -78,7 +78,8 @@ namespace ComputeDeviceDiffs {
             columnMapping[josysColumns[i]] = sourceColumns[i];
         }
         console.log(columnMapping);
-        const [entriesToAdd, entriesToUpdate] = ComputeDeviceDiffs.compareAndCategorize(sourceDevices, josysDevices, columnMapping, matchKey, assetNumberColumnValues);
+        let [entriesToAdd, entriesToUpdate] = ComputeDeviceDiffs.compareAndCategorize(sourceDevices, josysDevices, columnMapping, matchKey, assetNumberColumnValues);
+        entriesToAdd = ComputeDeviceDiffs.dropEmptyColumns(entriesToAdd);
         ComputeDeviceDiffs.modifyObjectsByKeyMapping(entriesToAdd, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
         ComputeDeviceDiffs.modifyObjectsByKeyMapping(entriesToUpdate, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
         console.log(entriesToAdd);
@@ -86,12 +87,25 @@ namespace ComputeDeviceDiffs {
         return [entriesToAdd, entriesToUpdate];
     };
 
+    export const dropEmptyColumns = (members: Array<{ [key: string]: any;}>) => {
+        return members.map(member => {
+            for (const key in member) {
+                if (member[key] === "") {
+                    delete member[key];
+                }
+            }
+            return member;
+        });
+    }
+
     export const compareAndCategorize = (sourceDevices: Array<{ [key: string]: any }>, josysDevices: Array<{ [key: string]: any }>, josysCol2SourceCol: { [key: string]: string }, matchKey: string, assetNumberColumnValues: string[]) => {
         let entriesToAdd: Array<{ [key: string]: any }> = [];
         let entriesToUpdate: Array<{ [key: string]: any }> = [];
 
         const josysDevicesByMatchValue = josysDevices.reduce((acc, obj) => {
-            acc[obj[matchKey]] = obj;
+            if (obj[matchKey] && obj[matchKey] !== "") {
+                acc[obj[matchKey]] = obj;
+            }
             return acc;
         }, {});
 

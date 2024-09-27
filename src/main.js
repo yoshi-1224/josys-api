@@ -279,12 +279,12 @@ function getLastRange(sheetName, length) {
 }
 
 function createObjectArrayFromSheet(sheetName) {
-  let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   if (!sheet) {
       return;
   }
   const startRow = 2;
-  let sheetData = sheet.getRange(startRow, 1, sheet.getLastRow() - startRow + 1, sheet.getLastColumn()).getDisplayValues();
+  let sheetData = sheet.getRange(startRow, 1, sheet.getLastRow() - startRow + 1, Utils.getLastColumnNumber(sheet, startRow)).getDisplayValues();
   let columns = sheetData.shift();
   data = Utils.createObjectArrayFrom2dArray(columns, sheetData);
   return data;

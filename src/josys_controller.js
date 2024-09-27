@@ -29,8 +29,8 @@ function writeJosysMembersToSheet(sheetName, apiHeaderRow=1) {
     return;
   }
   const columns = Utils.getColumnsFromSheet(sheetName, apiHeaderRow);
-  const writeFromRow = apiHeaderRow + 2;
-  Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, writeFromRow, 1, true);
+  const rowToWriteFrom = apiHeaderRow + 2;
+  Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, rowToWriteFrom, 1, true);
 }
 
 function writeJosysDevicesToSheet(sheetName, apiHeaderRow=1) {
@@ -46,8 +46,8 @@ function writeJosysDevicesToSheet(sheetName, apiHeaderRow=1) {
     return;
   }
   const columns = Utils.getColumnsFromSheet(sheetName, apiHeaderRow);
-  const writeFromRow = apiHeaderRow + 2;
-  Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, writeFromRow, 1, true);
+  const rowToWriteFrom = apiHeaderRow + 2;
+  Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, rowToWriteFrom, 1, true);
 }
 
 function uploadMembers(members) {

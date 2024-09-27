@@ -13,6 +13,6 @@ function getLanscopeCredentials() {
       return;
     }
     const columns = Utils.getColumnsFromSheet(sheetName, headerRow);
-    const writeFromRow = headerRow + 2;
-    Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, writeFromRow, 1, true);
+    const rowToWriteFrom = headerRow + 2;
+    Utils.writeArrayToSheet(Utils.createOrdered2dArrray(results, columns), sheetName, rowToWriteFrom, 1, true);
   }
