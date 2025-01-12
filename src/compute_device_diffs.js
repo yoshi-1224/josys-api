@@ -135,6 +135,7 @@ class ComputeDeviceDiffs {
                         let sourceValue = srcDevice[sourceColumn];
                         newDevice[josysColumn] = sourceValue;
                     });
+                    // do NOT perform assignment on new devices. Instead, only create them first, and then treat them as existing devices in the code below by running the sync code twice
                     delete newDevice["ステータス"];
                     delete newDevice["利用者メールアドレス"];
                     delete newDevice["利用開始日"];
@@ -156,30 +157,39 @@ class ComputeDeviceDiffs {
                     if (!("利用開始日" in josysCol2SourceCol) || !("利用者メールアドレス" in josysCol2SourceCol)) {
                         // Do nothing if both keys are not in josysCol2SourceCol
                     } else {
-                        let statusColName = josysCol2SourceCol["ステータス"];
-                        let assignmentStartDateName = josysCol2SourceCol["利用開始日"];
-                        let assigneeEmail = josysCol2SourceCol["利用者メールアドレス"];
+                        let statusColumnName = josysCol2SourceCol["ステータス"];
+                        let assignmentStartDateColumnName = josysCol2SourceCol["利用開始日"];
+                        let assigneeEmailColumnName = josysCol2SourceCol["利用者メールアドレス"];
                         if (josysDevice["ステータス"] === "利用中") {
-                            if (srcDevice[statusColName] !== "利用中" && !srcDevice[assignmentStartDateName] && !srcDevice[assigneeEmail]) {
-                                unassignActions.push({ "ID": diffObj["ID"], "target_status": srcDevice[statusColName] });
+                            if (srcDevice[statusColumnName] !== "利用中" && !srcDevice[assignmentStartDateColumnName] && !srcDevice[assigneeEmailColumnName]) {
+                                // 利用中 -> 別のステータス
+                                unassignActions.push({ "ID": diffObj["ID"], "target_status": srcDevice[statusColumnName] });
                                 delete diffObj["ステータス"];
-                            } else if (srcDevice[statusColName] === "利用中") {
-                                if (srcDevice[assigneeEmail] !== josysDevice["利用者メールアドレス"]) {
+                            } else if (srcDevice[statusColumnName] === "利用中") {
+                                if (srcDevice[assigneeEmailColumnName] !== josysDevice["利用者メールアドレス"]) {
+                                    // 利用中 -> 別ユーザーによる利用中
                                     delete diffObj["ステータス"];
-                                    unassignActions.push({ "ID": diffObj["ID"], "target_status": "在庫" });
+                                    // 一旦在庫に戻す
+                                    unassignActions.push({
+                                        "ID": diffObj["ID"],
+                                        "target_status": "在庫",
+                                        "assignment_end_date": new Date().toISOString().split('T')[0], // 今日の日付
+                                    });
+                                    // そこから再割り当て
                                     assignActions.push({
                                         "ID": diffObj["ID"],
-                                        "assignment_date": srcDevice[assignmentStartDateName],
-                                        "assignment_email": srcDevice[assigneeEmail]
+                                        "assignment_date": srcDevice[assignmentStartDateColumnName],
+                                        "assignment_email": srcDevice[assigneeEmailColumnName]
                                     });
                                 }
-                                // ignore case for same person
+                                // 同じユーザーの場合は、利用日が変わっても無視
                             }
-                        } else if (josysDevice["ステータス"] !== "利用中" && srcDevice[statusColName] === "利用中") {
+                        } else if (josysDevice["ステータス"] !== "利用中" && srcDevice[statusColumnName] === "利用中") {
+                            // 新規割当ての場合
                             assignActions.push({
                                 "ID": diffObj["ID"],
-                                "assignment_date": srcDevice[assignmentStartDateName],
-                                "assignment_email": srcDevice[assigneeEmail]
+                                "assignment_date": srcDevice[assignmentStartDateColumnName],
+                                "assignment_email": srcDevice[assigneeEmailColumnName]
                             });
                         }
                     }

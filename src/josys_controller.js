@@ -121,7 +121,7 @@ class JosysController {
             let uuid = a["ID"];
             let data = {
                 "target_status": deviceStatusMappingJp2En[a["target_status"]],
-                "assignment_end_date": new Date().toISOString().split('T')[0],
+                "assignment_end_date": a["assignment_end_date"],
             }
             try {
                 apiClient.unassignDeviceFromUser(uuid, data);
