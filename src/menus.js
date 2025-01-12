@@ -11,6 +11,7 @@ function onOpen(){
         .addItem('ジョーシス: メンバー取得', 'getJosysMembers')
         .addItem('freee: 従業員取得', 'getFreeeMembers')
         .addItem('HRBrain: 従業員取得', 'getHRBrainMembers')
+        .addItem('GWS: ユーザー取得', 'getGoogleWorkspaceMembers')
         .addItem('比較算出', 'writeMemberDiffsToSheet')
         .addItem('比較算出 + 同期', 'syncMembersToJosys'))
       .addSeparator()
@@ -22,6 +23,8 @@ function onOpen(){
         .addItem('ChromeOSデバイス: デバイス取得', 'getChromeOSDevices')
         .addItem('比較算出', 'writeDeviceDiffsToSheet')
         .addItem('比較算出 + 同期', 'syncDevicesToJosys'))
+      .addSeparator()
+      .addItem('データ消去', 'clearAllOutputSheets')
       .addToUi();
 }
 

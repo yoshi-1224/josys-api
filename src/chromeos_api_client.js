@@ -16,5 +16,3 @@ class ChromeosClient {
         return results;
     }
 }
-
-// https://chatgpt.com/share/66e6490a-5148-8001-bca2-72e6856f0f52

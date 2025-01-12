@@ -56,7 +56,7 @@ namespace ComputeDeviceDiffs {
             throw new Error(`Sheet with name ${sheetName} not found`);
         }
 
-        if (SYNC_NEW_DEVICES_FLAG) {
+        if (!SYNC_NEW_DEVICES_FLAG) {
             return null;
         }
 
@@ -73,34 +73,63 @@ namespace ComputeDeviceDiffs {
         }
         const matchKey = ComputeDeviceDiffs.readMatchKeyFromSheet(DEVICE_CONFIG_SHEET_NAME);
         console.log(`match key = ${matchKey}`);
-        const columnMapping = {};
+        const josysCol2SourceCol = {};
         for (let i = 0; i < josysColumns.length; i++) {
-            columnMapping[josysColumns[i]] = sourceColumns[i];
+            josysCol2SourceCol[josysColumns[i]] = sourceColumns[i];
         }
-        console.log(columnMapping);
-        let [entriesToAdd, entriesToUpdate] = ComputeDeviceDiffs.compareAndCategorize(sourceDevices, josysDevices, columnMapping, matchKey, assetNumberColumnValues);
-        entriesToAdd = ComputeDeviceDiffs.dropEmptyColumns(entriesToAdd);
-        ComputeDeviceDiffs.modifyObjectsByKeyMapping(entriesToAdd, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
-        ComputeDeviceDiffs.modifyObjectsByKeyMapping(entriesToUpdate, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
-        console.log(entriesToAdd);
-        console.log(entriesToUpdate);
-        return [entriesToAdd, entriesToUpdate];
+
+        console.log(`sourceDevices`);
+        console.log(sourceDevices);
+        console.log(`josysDevices`);
+        console.log(josysDevices);
+        console.log(`Column Mappings:`);
+        console.log(josysCol2SourceCol);
+        let [devicesToAdd, devicesToUpdate, unassignActions, assignActions] = ComputeDeviceDiffs.compareAndCategorize(sourceDevices, josysDevices, josysCol2SourceCol, matchKey, assetNumberColumnValues);
+        devicesToAdd = devicesToAdd as Array<{ [key: string]: any }>;
+        devicesToAdd = ComputeDeviceDiffs.dropEmptyColumns(devicesToAdd); // even drop assignments columns too
+        console.log("ComputeDeviceDiffs: EntriesToAdd");
+        console.log(devicesToAdd);
+        console.log("ComputeDeviceDiffs: EntriesToUpdate");
+        console.log(devicesToUpdate);
+        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToAdd, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
+        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToUpdate, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
+        return [devicesToAdd, devicesToUpdate, unassignActions, assignActions];
     };
 
-    export const dropEmptyColumns = (members: Array<{ [key: string]: any;}>) => {
-        return members.map(member => {
-            for (const key in member) {
-                if (member[key] === "") {
-                    delete member[key];
+    export const dropEmptyColumns = (devices: Array<{ [key: string]: any;}>) => {
+        return devices.map(device => {
+            for (const key in device) {
+                if (device[key] === "") {
+                    delete device[key];
                 }
             }
-            return member;
+            return device;
         });
     }
+
+    // do comparison in the same function altogether
+    // compare assignment properties only
+    // if new device
+        // if valid columns are specified in matching
+            // if status is "利用中" and assignment columns are valid then assign => {assignment_date, assignment_email}
+        // => null
+    // if existing device
+        // if valid columns are not specified in matching then do nothing => null
+        // if current status is 利用中
+            // and new status is different and new assignee is empty
+                // then delete status key and unassign => { target_status: status }
+            // new status is also 利用中
+                // if email is same then do nothing => null (this may change in the future)
+                // if email is different then unassign and reassign to the new person =>
+        // if current status is not 利用中
+            // and if new status is 利用中 and assignment columns are valid then delete status and assign
+        // unassign array (UUID, date as today) and assign array
 
     export const compareAndCategorize = (sourceDevices: Array<{ [key: string]: any }>, josysDevices: Array<{ [key: string]: any }>, josysCol2SourceCol: { [key: string]: string }, matchKey: string, assetNumberColumnValues: string[]) => {
         let entriesToAdd: Array<{ [key: string]: any }> = [];
         let entriesToUpdate: Array<{ [key: string]: any }> = [];
+        let unassignActions: Array<{ ID: any; target_status: any }> = [];
+        let assignActions: Array<{ ID: any; assignment_date: any; assignment_email: any }> = [];
 
         const josysDevicesByMatchValue = josysDevices.reduce((acc, obj) => {
             if (obj[matchKey] && obj[matchKey] !== "") {
@@ -125,6 +154,9 @@ namespace ComputeDeviceDiffs {
                         let sourceValue = srcDevice[sourceColumn];
                         newDevice[josysColumn] = sourceValue;
                     });
+                    delete newDevice["ステータス"];
+                    delete newDevice["利用者メールアドレス"];
+                    delete newDevice["利用開始日"];
                     entriesToAdd.push({ ...newDevice, "資産番号": assetNumberColumnValues[index] });
                 }
             } else {
@@ -137,15 +169,46 @@ namespace ComputeDeviceDiffs {
                     if (sourceValue !== josysValue) {
                         isDifferent = true;
                         diffObj[josysColumn] = sourceValue;
-                    }                    
+                    }       
                 });
                 if (isDifferent) {
+                    if (!("利用開始日" in josysCol2SourceCol) || !("利用者メールアドレス" in josysCol2SourceCol)) {
+                        // Do nothing if both keys are not in josysCol2SourceCol
+                    } else {
+                        let statusColName = josysCol2SourceCol["ステータス"];
+                        let assignmentStartDateName = josysCol2SourceCol["利用開始日"];
+                        let assigneeEmail = josysCol2SourceCol["利用者メールアドレス"];
+                        if (josysDevice["ステータス"] === "利用中") {
+                            if (srcDevice[statusColName] !== "利用中" && !srcDevice[assignmentStartDateName] && !srcDevice[assigneeEmail]) {
+                                unassignActions.push({ "ID": diffObj["ID"], "target_status": srcDevice[statusColName] });
+                                delete diffObj["ステータス"];
+                            } else if (srcDevice[statusColName] === "利用中") {
+                                if (srcDevice[assigneeEmail] !== josysDevice["利用者メールアドレス"]) {
+                                    delete diffObj["ステータス"];
+                                    unassignActions.push({ "ID": diffObj["ID"], "target_status": "在庫" });
+                                    assignActions.push({
+                                        "ID": diffObj["ID"],
+                                        "assignment_date": srcDevice[assignmentStartDateName],
+                                        "assignment_email": srcDevice[assigneeEmail]
+                                    });
+                                }
+                                // ignore case for same person
+                            }
+                        } else if (josysDevice["ステータス"] !== "利用中" && srcDevice[statusColName] === "利用中") {
+                            assignActions.push({
+                                "ID": diffObj["ID"],
+                                "assignment_date": srcDevice[assignmentStartDateName],
+                                "assignment_email": srcDevice[assigneeEmail]
+                            });
+                        }
+                    }
+                    delete diffObj["利用者メールアドレス"];
+                    delete diffObj["利用開始日"];
                     entriesToUpdate.push(diffObj);
                 }
             }
         });
-
-        return [entriesToAdd, entriesToUpdate];
+        return [entriesToAdd, entriesToUpdate, unassignActions, assignActions];
     }
 
     export const modifyObjectsByKeyMapping = (objects, keyMapping) => {
@@ -156,7 +219,8 @@ namespace ComputeDeviceDiffs {
                     // Rename the key based on the mapping
                     obj[keyMapping[key]] = obj[key];
                     delete obj[key];
-                } else {
+                }
+                else {
                     custom_fields.push({ "name": key, "value": obj[key] });
                     delete obj[key];
                 }

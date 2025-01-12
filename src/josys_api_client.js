@@ -398,3 +398,10 @@ const deviceStatusMappingEn2Jp = {
   "DECOMMISSIONED": "廃棄/解約",
   "UNKNOWN": "不明"
 }
+
+const deviceStatusMappingJp2En = {
+  "在庫": "AVAILABLE",
+  "利用中": "IN_USE",
+  "廃棄/解約": "DECOMMISSIONED",
+  "不明": "UNKNOWN"
+}

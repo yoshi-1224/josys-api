@@ -25,7 +25,7 @@ namespace Utils {
     }
 
     if (clearRange && sheet.getLastRow() !== 0) {
-      sheet.getRange(startRow, startCol, sheet.getLastRow(), Utils.getLastColumnNumber(sheet, 1)).clearContent(); // avoid deleting formulas
+      sheet.getRange(startRow, startCol, sheet.getLastRow(), Utils.getLastColumnNumber(sheet, 1)).clearContent(); // only delete values within API columns
     }
 
     sheet.getRange(startRow, startCol, data2dArray.length, data2dArray[0].length).setValues(data2dArray);
