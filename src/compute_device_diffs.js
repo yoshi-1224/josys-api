@@ -1,29 +1,29 @@
-namespace ComputeDeviceDiffs {
-    const JOSYS_DEVICE_COLUMNS_ROW_NUM = 6;
-    const MDM_DEVICE_COLUMNS_ROW_NUM = 7;
-    const START_COL_OF_DEVICE_COLUMNS = 3;
-    const MATCH_KEY_RANGE = "B12";
-    const ASSET_NUMBER_COLUMN_RANGE = "B19";
+const JOSYS_DEVICE_COLUMNS_ROW_NUM = 6;
+const MDM_DEVICE_COLUMNS_ROW_NUM = 7;
+const START_COL_OF_DEVICE_COLUMNS = 3;
+const MATCH_KEY_RANGE = "B12";
+const ASSET_NUMBER_COLUMN_RANGE = "B19";
 
-    export const JosysDeviceDefaultColumnJP2EN = {
-        "ID": "uuid",
-        "資産番号": "asset_number",
-        "シリアル番号": "serial_number",
-        "ステータス": "status",
-        "メーカー": "manufacturer",
-        "型番": "model_number",
-        "デバイスの種類": "device_type",
-        "デバイス名": "model_name",
-        "OS": "operating_system",
-        "調達日": "start_date",
-        "廃棄日/解約日": "end_date",
-        "調達方法": "device_procurement",
-        "メモ": "additional_device_information",
-        // "ソース": "source", // not writable
-        // 利用者関連はTODO
-    }
+const JosysDeviceDefaultColumnJP2EN = {
+    "ID": "uuid",
+    "資産番号": "asset_number",
+    "シリアル番号": "serial_number",
+    "ステータス": "status",
+    "メーカー": "manufacturer",
+    "型番": "model_number",
+    "デバイスの種類": "device_type",
+    "デバイス名": "model_name",
+    "OS": "operating_system",
+    "調達日": "start_date",
+    "廃棄日/解約日": "end_date",
+    "調達方法": "device_procurement",
+    "メモ": "additional_device_information",
+    // "ソース": "source", // not writable
+    // 利用者関連はTODO
+};
 
-    export const readColumnMappingsFromSheet = (sheetName: string) => {
+class ComputeDeviceDiffs {
+    static readColumnMappingsFromSheet(sheetName) {
         if (sheetName === "") {
             sheetName = DEVICE_CONFIG_SHEET_NAME;
         }
@@ -33,13 +33,13 @@ namespace ComputeDeviceDiffs {
         }
         const lastColumn = ComputeDeviceDiffs.getLastColumnNumber(sheet, JOSYS_DEVICE_COLUMNS_ROW_NUM);
         let range = sheet.getRange(JOSYS_DEVICE_COLUMNS_ROW_NUM, START_COL_OF_DEVICE_COLUMNS, 1, lastColumn - START_COL_OF_DEVICE_COLUMNS + 1);
-        let josysColumns: string[] = range.getValues().flat();
+        let josysColumns = range.getValues().flat();
         range = sheet.getRange(MDM_DEVICE_COLUMNS_ROW_NUM, START_COL_OF_DEVICE_COLUMNS, 1, lastColumn - START_COL_OF_DEVICE_COLUMNS + 1);
-        let mdmColumns: string[] = range.getValues().flat();
+        let mdmColumns = range.getValues().flat();
         return [josysColumns, mdmColumns];
     }
 
-    export const readMatchKeyFromSheet = (sheetName: string) => {
+    static readMatchKeyFromSheet(sheetName) {
         if (sheetName === "") {
             sheetName = DEVICE_CONFIG_SHEET_NAME;
         }
@@ -50,7 +50,7 @@ namespace ComputeDeviceDiffs {
         return sheet.getRange(MATCH_KEY_RANGE).getValue();
     }
 
-    export const readAssetNumberColumnFromSheet = (sheetName: string) => {
+    static readAssetNumberColumnFromSheet(sheetName) {
         const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
         if (!sheet) {
             throw new Error(`Sheet with name ${sheetName} not found`);
@@ -63,7 +63,7 @@ namespace ComputeDeviceDiffs {
         return sheet.getRange(ASSET_NUMBER_COLUMN_RANGE).getValue();
     }
 
-    export const computeDeviceDiff = (sourceDevices, josysDevices) => {
+    static computeDeviceDiff(sourceDevices, josysDevices) {
         const [josysColumns, sourceColumns] = ComputeDeviceDiffs.readColumnMappingsFromSheet(DEVICE_CONFIG_SHEET_NAME);
         const assetNumberColumn = ComputeDeviceDiffs.readAssetNumberColumnFromSheet(DEVICE_CONFIG_SHEET_NAME);
         console.log(`asetNumberColumn = ${assetNumberColumn}`);
@@ -85,18 +85,17 @@ namespace ComputeDeviceDiffs {
         console.log(`Column Mappings:`);
         console.log(josysCol2SourceCol);
         let [devicesToAdd, devicesToUpdate, unassignActions, assignActions] = ComputeDeviceDiffs.compareAndCategorize(sourceDevices, josysDevices, josysCol2SourceCol, matchKey, assetNumberColumnValues);
-        devicesToAdd = devicesToAdd as Array<{ [key: string]: any }>;
         devicesToAdd = ComputeDeviceDiffs.dropEmptyColumns(devicesToAdd); // even drop assignments columns too
         console.log("ComputeDeviceDiffs: EntriesToAdd");
         console.log(devicesToAdd);
         console.log("ComputeDeviceDiffs: EntriesToUpdate");
         console.log(devicesToUpdate);
-        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToAdd, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
-        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToUpdate, ComputeDeviceDiffs.JosysDeviceDefaultColumnJP2EN);
+        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToAdd, JosysDeviceDefaultColumnJP2EN);
+        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToUpdate, JosysDeviceDefaultColumnJP2EN);
         return [devicesToAdd, devicesToUpdate, unassignActions, assignActions];
-    };
+    }
 
-    export const dropEmptyColumns = (devices: Array<{ [key: string]: any;}>) => {
+    static dropEmptyColumns(devices) {
         return devices.map(device => {
             for (const key in device) {
                 if (device[key] === "") {
@@ -107,29 +106,11 @@ namespace ComputeDeviceDiffs {
         });
     }
 
-    // do comparison in the same function altogether
-    // compare assignment properties only
-    // if new device
-        // if valid columns are specified in matching
-            // if status is "利用中" and assignment columns are valid then assign => {assignment_date, assignment_email}
-        // => null
-    // if existing device
-        // if valid columns are not specified in matching then do nothing => null
-        // if current status is 利用中
-            // and new status is different and new assignee is empty
-                // then delete status key and unassign => { target_status: status }
-            // new status is also 利用中
-                // if email is same then do nothing => null (this may change in the future)
-                // if email is different then unassign and reassign to the new person =>
-        // if current status is not 利用中
-            // and if new status is 利用中 and assignment columns are valid then delete status and assign
-        // unassign array (UUID, date as today) and assign array
-
-    export const compareAndCategorize = (sourceDevices: Array<{ [key: string]: any }>, josysDevices: Array<{ [key: string]: any }>, josysCol2SourceCol: { [key: string]: string }, matchKey: string, assetNumberColumnValues: string[]) => {
-        let entriesToAdd: Array<{ [key: string]: any }> = [];
-        let entriesToUpdate: Array<{ [key: string]: any }> = [];
-        let unassignActions: Array<{ ID: any; target_status: any }> = [];
-        let assignActions: Array<{ ID: any; assignment_date: any; assignment_email: any }> = [];
+    static compareAndCategorize(sourceDevices, josysDevices, josysCol2SourceCol, matchKey, assetNumberColumnValues) {
+        let entriesToAdd = [];
+        let entriesToUpdate = [];
+        let unassignActions = [];
+        let assignActions = [];
 
         const josysDevicesByMatchValue = josysDevices.reduce((acc, obj) => {
             if (obj[matchKey] && obj[matchKey] !== "") {
@@ -211,9 +192,9 @@ namespace ComputeDeviceDiffs {
         return [entriesToAdd, entriesToUpdate, unassignActions, assignActions];
     }
 
-    export const modifyObjectsByKeyMapping = (objects, keyMapping) => {
+    static modifyObjectsByKeyMapping(objects, keyMapping) {
         objects.forEach(obj => {
-            let custom_fields: Array<object> = [];
+            let custom_fields = [];
             Object.keys(obj).forEach(key => {
                 if (keyMapping.hasOwnProperty(key)) {
                     // Rename the key based on the mapping
@@ -231,7 +212,7 @@ namespace ComputeDeviceDiffs {
         });
     }
 
-    export const getLastColumnNumber = (sheet, row:number) => {
+    static getLastColumnNumber(sheet, row) {
         const lastColumn = sheet.getLastColumn();
         const values = sheet.getRange(row, 1, 1, lastColumn).getValues()[0];
         for (let col = lastColumn - 1; col >= 0; col--) {
