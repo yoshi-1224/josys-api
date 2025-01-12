@@ -163,7 +163,11 @@ class ComputeDeviceDiffs {
                         if (josysDevice["ステータス"] === "利用中") {
                             if (srcDevice[statusColumnName] !== "利用中" && !srcDevice[assignmentStartDateColumnName] && !srcDevice[assigneeEmailColumnName]) {
                                 // 利用中 -> 別のステータス
-                                unassignActions.push({ "ID": diffObj["ID"], "target_status": srcDevice[statusColumnName] });
+                                unassignActions.push({
+                                    "ID": diffObj["ID"],
+                                    "target_status": srcDevice[statusColumnName],
+                                    "assignment_end_date": new Date().toISOString().split('T')[0], // 今日の日付
+                                });
                                 delete diffObj["ステータス"];
                             } else if (srcDevice[statusColumnName] === "利用中") {
                                 if (srcDevice[assigneeEmailColumnName] !== josysDevice["利用者メールアドレス"]) {
@@ -173,7 +177,7 @@ class ComputeDeviceDiffs {
                                     unassignActions.push({
                                         "ID": diffObj["ID"],
                                         "target_status": "在庫",
-                                        "assignment_end_date": new Date().toISOString().split('T')[0], // 今日の日付
+                                        "assignment_end_date": new Date(new Date(srcDevice[assignmentStartDateColumnName]).getTime() - 86400000).toISOString().split('T')[0] // 前日に設定する
                                     });
                                     // そこから再割り当て
                                     assignActions.push({
@@ -191,11 +195,14 @@ class ComputeDeviceDiffs {
                                 "assignment_date": srcDevice[assignmentStartDateColumnName],
                                 "assignment_email": srcDevice[assigneeEmailColumnName]
                             });
+                            delete diffObj["ステータス"]
                         }
                     }
                     delete diffObj["利用者メールアドレス"];
                     delete diffObj["利用開始日"];
-                    entriesToUpdate.push(diffObj);
+                    if (Object.keys(diffObj).length > 1) {
+                        entriesToUpdate.push(diffObj);
+                    } // exclude diffs which only have its ID
                 }
             }
         });
