@@ -129,7 +129,7 @@ function syncDevicesToJosys() {
 
 function assignJosysDevices(assignActions) {
     const lastRange = getLastRange(OUTPUT_SHEET_NAME_ASSIGN_ACTIONS, assignActions.length);
-    let results = assignDevices(assignActions);
+    let results = JosysController.assignDevices(assignActions);
     lastRange.setValues(results.map(function (item) {
         return [item]; // Wrap each item in an array
     }));
@@ -137,7 +137,7 @@ function assignJosysDevices(assignActions) {
 
 function unassignJosysDevices(unassignActions) {
     const lastRange = getLastRange(OUTPUT_SHEET_NAME_UNASSIGN_ACTIONS, unassignActions.length);
-    let results = unassignDevices(unassignActions);
+    let results = JosysController.unassignDevices(unassignActions);
     lastRange.setValues(results.map(function (item) {
         return [item]; // Wrap each item in an array
     }));
@@ -147,14 +147,14 @@ function getJosysMembers(target_sheet = "") {
     if (target_sheet === "") {
         target_sheet = OUTPUT_SHEET_NAME_JOSYS_MEMBERS;
     }
-    writeJosysMembersToSheet(target_sheet);
+    JosysController.writeJosysMembersToSheet(target_sheet);
 }
 
 function getJosysDevices(target_sheet = "") {
     if (target_sheet === "") {
         target_sheet = OUTPUT_SHEET_NAME_JOSYS_DEVICES;
     }
-    writeJosysDevicesToSheet(target_sheet);
+    JosysController.writeJosysDevicesToSheet(target_sheet);
 }
 
 function getFreeeMembers(target_sheet = "") {
@@ -168,7 +168,7 @@ function getHRBrainMembers(target_sheet = "") {
     if (target_sheet === "") {
         target_sheet = OUTPUT_SHEET_NAME_HRBRAIN_EMPLOYEES;
     }
-    writeHrbrainMembersToSheet(target_sheet);
+    HrbrainController.writeHrbrainMembersToSheet(target_sheet);
 }
 
 function getGoogleWorkspaceMembers(target_sheet = "") {
@@ -262,7 +262,7 @@ function writeDeviceDiffsToSheet(sourceSheet = "", josysSheet = "") {
 
 function postNewDevicesToJosys(devicesToAdd) {
     const lastRange = getLastRange(OUTPUT_SHEET_NAME_NEW_DEVICES, devicesToAdd.length);
-    let results = uploadDevices(devicesToAdd);
+    let results = JosysController.uploadDevices(devicesToAdd);
     lastRange.setValues(results.map(function (item) {
         return [item]; // Wrap each item in an array
     }));
@@ -270,7 +270,7 @@ function postNewDevicesToJosys(devicesToAdd) {
 
 function updateDevicesOnJosys(devicesToUpdate) {
     const lastRange = getLastRange(OUTPUT_SHEET_NAME_UPDATED_DEVICES, devicesToUpdate.length);
-    let results = updateDevices(devicesToUpdate);
+    let results = JosysController.updateDevices(devicesToUpdate);
     lastRange.setValues(results.map(function (item) {
         return [item]; // Wrap each item in an array
     }));
@@ -278,7 +278,7 @@ function updateDevicesOnJosys(devicesToUpdate) {
 
 function postNewMembersToJosys(employeesToAdd) {
     const lastRange = getLastRange(OUTPUT_SHEET_NAME_NEW_EMPLOYEES, employeesToAdd.length);
-    let results = uploadMembers(employeesToAdd);
+    let results = JosysController.uploadMembers(employeesToAdd);
     lastRange.setValues(results.map(function (item) {
         return [item]; // Wrap each item in an array
     }));
@@ -286,7 +286,7 @@ function postNewMembersToJosys(employeesToAdd) {
 
 function updateMembersOnJosys(employeesToUpdate) {
     const lastRange = getLastRange(OUTPUT_SHEET_NAME_UPDATED_EMPLOYEES, employeesToUpdate.length);
-    let results = updateMembers(employeesToUpdate);
+    let results = JosysController.updateMembers(employeesToUpdate);
     lastRange.setValues(results.map(function (item) {
         return [item]; // Wrap each item in an array
     }));

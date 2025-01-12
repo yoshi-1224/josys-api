@@ -61,7 +61,7 @@ class Utils {
     });
   }
 
-  static extract_columns(obj, columns) {
+  static extractColumns(obj, columns) {
     Object.keys(obj).forEach(key => {
       if (!columns.includes(key)) {
         delete obj[key];

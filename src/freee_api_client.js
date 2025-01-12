@@ -89,7 +89,7 @@ class FreeeApiClient {
     const results = this._paginateThrough(requestUrl, params);
     for (const r of results) {
       this._flatten_profile_rules(r);
-      Utils.extract_columns(r, this.columns);
+      Utils.extractColumns(r, this.columns);
     };
     return results;
   }
@@ -98,7 +98,7 @@ class FreeeApiClient {
     var requestUrl = `https://api.freee.co.jp/hr/api/v1/companies/${companyId}/employees`;
     const results = this._paginateThrough(requestUrl);
     for (const r of results) {
-      Utils.extract_columns(r, this.columns);
+      Utils.extractColumns(r, this.columns);
     };
     return results;
   }
@@ -121,7 +121,7 @@ class FreeeApiClient {
     let params = { company_id: companyId, base_date: Utils.formatDateToJosysFormat(new Date())};
     var results = this._paginateThrough(requestUrl, params);
     for (const r of results) {
-      Utils.extract_columns(r, ["id", "group_memberships"]);
+      Utils.extractColumns(r, ["id", "group_memberships"]);
       this._flatten_group_memberships(r);
     };
     return results;

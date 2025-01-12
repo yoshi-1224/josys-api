@@ -6,7 +6,7 @@ const HRMS_MEMBER_MATCH_KEY_ROW_NUM = 12;
 // const COL_VAL_MATCHING_START_ROW = 19;
 // const COL_VAL_MATCHING_START_COL = 2;
 
-const JP2ENMapping = {
+const JosysMemberColumnsJP2ENMapping = {
     "ID": "uuid",
     "姓": "last_name",
     "名": "first_name",
@@ -73,8 +73,8 @@ class ComputeMemberDiffs {
         membersToAdd = ComputeMemberDiffs.validateNewMembers(membersToAdd);
         membersToAdd = ComputeMemberDiffs.dropEmptyColumns(membersToAdd);
         membersToUpdate = ComputeMemberDiffs.validateUpdatedMembers(membersToUpdate);
-        ComputeMemberDiffs.renameKeys(membersToAdd, JP2ENMapping);
-        ComputeMemberDiffs.renameKeys(membersToUpdate, JP2ENMapping);
+        ComputeMemberDiffs.renameKeys(membersToAdd, JosysMemberColumnsJP2ENMapping);
+        ComputeMemberDiffs.renameKeys(membersToUpdate, JosysMemberColumnsJP2ENMapping);
         return [membersToAdd, membersToUpdate];
     }
 

@@ -4,7 +4,7 @@ const START_COL_OF_DEVICE_COLUMNS = 3;
 const MATCH_KEY_RANGE = "B12";
 const ASSET_NUMBER_COLUMN_RANGE = "B19";
 
-const JosysDeviceDefaultColumnJP2EN = {
+const JosysDeviceDefaultColumnsJP2EN = {
     "ID": "uuid",
     "資産番号": "asset_number",
     "シリアル番号": "serial_number",
@@ -90,8 +90,8 @@ class ComputeDeviceDiffs {
         console.log(devicesToAdd);
         console.log("ComputeDeviceDiffs: EntriesToUpdate");
         console.log(devicesToUpdate);
-        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToAdd, JosysDeviceDefaultColumnJP2EN);
-        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToUpdate, JosysDeviceDefaultColumnJP2EN);
+        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToAdd, JosysDeviceDefaultColumnsJP2EN);
+        ComputeDeviceDiffs.modifyObjectsByKeyMapping(devicesToUpdate, JosysDeviceDefaultColumnsJP2EN);
         return [devicesToAdd, devicesToUpdate, unassignActions, assignActions];
     }
 

@@ -134,7 +134,7 @@ class JosysApiClient {
    * User Profile endpoints
    **/
   getAllUserProfiles(perPage = 1000, returnEnumsInJapanese=true, getDepartments=true) {
-    const results = this._paginateThrough('/v1/user_profiles', perPage);
+    const results = this._paginateThrough('/v2/user_profiles', perPage);
 
     if (returnEnumsInJapanese) {
       for (const profile of results) {
@@ -150,7 +150,7 @@ class JosysApiClient {
   }
 
   getUserProfile(uuid, returnEnumsInJapanese=true) {
-    const result = this._makeApiRequest(`/v1/user_profiles/${uuid}`);
+    const result = this._makeApiRequest(`/v2/user_profiles/${uuid}`);
     if (result) {
       let userProfile = result.content.data;
       if (returnEnumsInJapanese) {
@@ -163,11 +163,11 @@ class JosysApiClient {
 
   updateUserProfile(uuid, params) {
     console.log("UPDATING " + uuid);
-    return this._makeApiRequest(`/v1/user_profiles/${uuid}`, "patch", params);
+    return this._makeApiRequest(`/v2/user_profiles/${uuid}`, "patch", params);
   }
 
   deleteUserProfile(uuid) {
-    return this._makeApiRequest(`/v1/user_profiles/${uuid}`, "delete");
+    return this._makeApiRequest(`/v2/user_profiles/${uuid}`, "delete");
   }
 
   createUserProfile(params) {
@@ -178,11 +178,11 @@ class JosysApiClient {
       throw new Error('Error: "email" or "user_id" must be provided');
     }
     console.log("CREATING " + params.last_name);
-    return this._makeApiRequest('/v1/user_profiles', 'post', params).content.data;
+    return this._makeApiRequest('/v2/user_profiles', 'post', params).content.data;
   }
 
   searchUserProfiles(search_params, perPage=500, returnEnumsInJapanese=true, getDepartmentNames=true) {
-    let results = this._paginateThrough('/v1/user_profiles/search', perPage, 'post', search_params);
+    let results = this._paginateThrough('/v2/user_profiles/search', perPage, 'post', search_params);
     if (!results) {
       return [];
     }
@@ -351,19 +351,19 @@ class JosysApiClient {
 }
 
 const memberStatusMappingEn2Jp = {
-  "ONBOARD_INITIATED": "入社前",
-  "ONBOARDED": "在籍中",
-  "TEMPORARY_LEAVE":"休職中",
-  "OFFBOARD_INITIATED": "退職済",
+  "INITIATED": "入社前",
+  "ACTIVE": "在籍中",
+  "SUSPENDED":"休職中",
+  "TERMINATED": "退職済",
   "UNKNOWN": "不明",
   "OTHERS": "その他",
 };
 
 const memberStatusMappingJp2En = {
-  "入社前": "ONBOARD_INITIATED",
-  "在籍中": "ONBOARDED",
-  "休職中": "TEMPORARY_LEAVE",
-  "退職済": "OFFBOARD_INITIATED",
+  "入社前": "INITIATED",
+  "在籍中": "ACTIVE",
+  "休職中": "SUSPENDED",
+  "退職済": "TERMINATED",
   "不明": "UNKNOWN",
   "その他": "OTHERS",
 };
