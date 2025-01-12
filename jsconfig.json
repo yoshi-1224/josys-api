@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+    },
+    "include": [
+      "src/**/*.js"              // any .js file in src or its subfolders
+    ],
+    "exclude": [
+      "node_modules",            // don't index dependencies
+      "**/node_modules"          // (sometimes needed if subfolders have node_modules)
+    ]
+  }
